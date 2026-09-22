@@ -32,6 +32,10 @@ data/processed/*
 !data/processed/.gitkeep
 !data/processed/*.dvc
 !data/processed/.gitignore
+# Nested DVC pointers (e.g. OMI boundaries GeoJSON)
+!data/processed/omi/
+!data/processed/omi/boundaries/
+!data/processed/omi/boundaries/*.dvc
 *.csv
 *.parquet
 *.db

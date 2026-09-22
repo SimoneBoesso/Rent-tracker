@@ -54,13 +54,13 @@ Point-in-polygon / map → `zona_omi` (RF-04b). Cite: «Agenzia Entrate – OMI�
 |-------|--------|
 | Fonte | GEOPOI / Forniture OMI (perimetri zona) |
 | KML (raw) | `data/raw/omi/boundaries/H501.kml` (`H501` = codice nazionale Roma) |
-| GeoJSON (processed) | `data/processed/omi/boundaries/H501.geojson` — 233 feature, sole props `zona_omi` + `geometry`, CRS **EPSG:4326** |
+| GeoJSON (processed) | `data/processed/omi/boundaries/H501.geojson` — 233 feature, sole props `zona_omi` + `geometry`, CRS **EPSG:4326**. **DVC** (not git); API Docker ships the `.dvc` pointer and pulls bytes from R2 at startup (same as `features_latest`). |
 | Semestre perimetro | **2025/2** (nel KML: *Anno/Semestre 2025/2*) |
 | Zone | **233** Placemark; codice zona in `ExtendedData` → `CODZONA` (= `zona_omi`) |
 | Match vs raw | set KML ≡ ZONE Roma (`Comune_ISTAT=12058091` / `QI_*_ZONE` filtrati Roma) |
 | VALORI | **213**/233 zone con quotazione; **20** zone **R** solo geometria (ok per PIP; predict può 404 se no history) |
 
-Same gitignore / DVC as other raw under `data/raw/omi/` (processed GeoJSON: DVC come gli altri `data/processed/`). Do **not** redistribute raw KML beyond attribution (aggregates / internal use ok with citation).
+Same gitignore / DVC as other raw under `data/raw/omi/` (processed GeoJSON via DVC like `features_latest`). Do **not** redistribute raw KML beyond attribution (aggregates / internal use ok with citation).
 
 Layout on disk:
 

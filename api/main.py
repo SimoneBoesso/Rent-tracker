@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from api.boundaries import resolve_zona
+from api.boundaries import DEFAULT_BOUNDARIES, resolve_zona
 
 import hmac
 from collections.abc import AsyncGenerator
@@ -71,7 +71,7 @@ def create_app(
     path = model_path or DEFAULT_MODEL_PATH
     feats = features_path if features_path is not None else DEFAULT_INPUT
     sightings = sightings_path if sightings_path is not None else DEFAULT_PATH
-    boundaries = boundaries_path
+    boundaries = boundaries_path if boundaries_path is not None else DEFAULT_BOUNDARIES
     # lifespane (HOOKS) must be defining startup + shutdown ()
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -80,7 +80,9 @@ def create_app(
             # Pull features from R2/DVC when missing (Render Docker has no gitignored JSONL).
             if not Path(feats).is_file():
                 ensure_features_latest(feats)
-
+            # Same for OMI zone polygons (PIP /meta/zona-from-point).
+            if not Path(boundaries).is_file():
+                ensure_features_latest(boundaries)
 
             # startup
             _predictor = ModelPredictor(path, features_path=feats)

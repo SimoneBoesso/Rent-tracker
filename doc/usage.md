@@ -121,7 +121,7 @@ Open http://127.0.0.1:5000 — experiment `roma-rent-baseline`.
 | `POST /sightings` | Predict + persist a user listing (`asking_eur_m2`); `status=ok` appends JSONL (local + R2 when AWS_* set), `status=duplicate` skips a second row (forever dedupe on zona/tipologia/stato/asking). Does **not** touch OMI train / `retrain_check`. |
 | `GET /meta/tipologie` | Distinct `tipologia` values from `features_latest.jsonl` (UI selectbox; empty list if file missing) |
 | `GET /meta/zones` | Distinct `zona_omi` (+ `descr` / `label` from features or `*ZONE*.csv`) for the UI selectbox |
-| `GET /meta/zona-from-point` | Point-in-polygon on OMI boundaries → `zona_omi` \| `null` (`lat`/`lon` query). Needs local GeoJSON/KML (see [`omi.md`](omi.md)); used by the UI after Nominatim geocode ([`nominatim.md`](nominatim.md)). Outside Rome → `zona_omi: null` (not an error). Missing boundaries → `503`. |
+| `GET /meta/zona-from-point` | Point-in-polygon on OMI boundaries → `zona_omi` \| `null` (`lat`/`lon` query). Needs GeoJSON from DVC/R2 (see [`omi.md`](omi.md) / [`dvc.md`](dvc.md)); used by the UI after Nominatim geocode ([`nominatim.md`](nominatim.md)). Outside Rome → `zona_omi: null` (not an error). Missing boundaries → `503`. |
 | `GET /profile/history` | Semester mid series for one zona/tipologia/stato (last = test) + next-semester model forecast (`loc_mid_lag` = last mid). Needs `features_latest.jsonl` on the API (local file, or auto-pull from R2/DVC at startup when AWS_* is set). |
 | `GET /docs` | OpenAPI UI |
 | `POST /ingest/omi` | Admin: upload OMI `*VALORI*.csv` (`X-Ingest-Token` = env `INGEST_TOKEN`); SHA-256 dedup; optional `run_pipeline` |

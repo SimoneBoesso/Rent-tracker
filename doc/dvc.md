@@ -10,7 +10,7 @@ Keep the existing train fingerprint in `models/baseline_latest/dataset.json` (RF
 - After pipeline: `dvc push` → remote keeps snapshots
 - Repo stays clean: only small `.dvc` pointer files in git
 
-Track `data/processed/features_latest.jsonl` **and** `data/raw/` (OMI CSVs under `data/raw/omi/`).  
+Track `data/processed/features_latest.jsonl`, `data/processed/omi/boundaries/H501.geojson`, **and** `data/raw/` (OMI CSVs under `data/raw/omi/`).  
 You download CSVs manually from Fisconline; then `dvc add` / `dvc push` so CI can pull them.  
 `.dvcignore` may still exclude HTML leftovers; OMI path does not scrape HTML.
 
@@ -56,8 +56,12 @@ Only after you already have processed features locally (e.g. `run_pipeline.py` o
 ```bash
 dvc init
 dvc add data/processed/features_latest.jsonl
-git add data/processed/features_latest.jsonl.dvc .dvc .dvcignore .gitignore
-git commit -m "Add DVC tracking for features_latest"
+dvc add data/processed/omi/boundaries/H501.geojson   # PIP zones for /meta/zona-from-point
+git add data/processed/features_latest.jsonl.dvc \
+  data/processed/omi/boundaries/H501.geojson.dvc \
+  data/processed/omi/boundaries/.gitignore \
+  .dvc .dvcignore .gitignore
+git commit -m "Add DVC tracking for features_latest and OMI boundaries"
 ```
 
 `dvc add` creates a `.dvc` pointer. The real JSONL stays out of git via the root `.gitignore` (`data/processed/*` + exceptions for `*.dvc`). DVC may also create `data/processed/.gitignore`; if that file is missing, omit it from `git add` — that is normal when the root ignore already covers the data.

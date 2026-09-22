@@ -21,10 +21,11 @@ curl -s https://<api-service>.onrender.com/health
 ```
 
 Notes:
-- Container exposes `/health`, `/predict`, `/profile/history`, `/docs`.
+- Container exposes `/health`, `/predict`, `/profile/history`, `/meta/zona-from-point`, `/docs`.
 - Image copies `api/`, `ml/`, `etl/` (needed for `semester_key` / band lookup) and `models/`.
 - `models/baseline_latest/model.joblib` must be in the image or `/health` is `degraded` and `/predict` returns `503`.
 - `GET /profile/history` needs `data/processed/features_latest.jsonl`. The Docker image ships the DVC pointer (`.dvc`); at startup the API downloads the JSONL from the DVC remote on R2 when `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_ENDPOINT_URL` are set (same as ingest). Without those env vars, profile history returns `503`.
+- `GET /meta/zona-from-point` needs `data/processed/omi/boundaries/H501.geojson`. The image ships the DVC pointer (`H501.geojson.dvc`); at startup the API pulls the GeoJSON from R2 when AWS_* is set (same as features). Without credentials / remote object → `503`. Do not commit the GeoJSON to git.
 - If the port is wrong, make the Docker CMD read `PORT`.
 
 ## 2. UI service (Streamlit)

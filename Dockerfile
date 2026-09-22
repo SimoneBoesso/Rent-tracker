@@ -21,7 +21,9 @@ COPY models/ models/
 # DVC pointer (git-tracked) so API can pull features_latest from R2 at startup.
 # Same AWS_* credentials as ingest / DVC remote.
 COPY data/processed/features_latest.jsonl.dvc data/processed/features_latest.jsonl.dvc
-RUN mkdir -p data/processed
+# OMI zone polygons for GET /meta/zona-from-point (pull GeoJSON from R2 via DVC md5).
+COPY data/processed/omi/boundaries/H501.geojson.dvc data/processed/omi/boundaries/H501.geojson.dvc
+RUN mkdir -p data/processed data/processed/omi/boundaries
 
 # for debugging purposes
 ENV PYTHONUNBUFFERED=1

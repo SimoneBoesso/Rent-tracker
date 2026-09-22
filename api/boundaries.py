@@ -1,15 +1,27 @@
-from etl.extract.coordinates_loader import CoordinatesLoader, find_zone_by_coordinates
+"""Load OMI zone polygons and resolve (lat, lon) → zona_omi."""
+
+from __future__ import annotations
+
 from pathlib import Path
+
 from geopandas import read_file
 
+from etl.extract.coordinates_loader import CoordinatesLoader, find_zone_by_coordinates
 
-def resolve_zona(lat: float, lon: float, destination_path: Path|None = None) -> str | None:
+_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_BOUNDARIES = _ROOT / "data" / "processed" / "omi" / "boundaries" / "H501.geojson"
+DEFAULT_KML = _ROOT / "data" / "raw" / "omi" / "boundaries" / "H501.kml"
 
-    if destination_path is None:
-        destination_path = Path("data/processed/omi/boundaries/H501.geojson")
-    if not destination_path.exists():
-        gdf = CoordinatesLoader("data/raw/omi/boundaries/H501.kml").load(str(destination_path))
-    
+
+def resolve_zona(
+    lat: float,
+    lon: float,
+    destination_path: Path | None = None,
+) -> str | None:
+    path = Path(destination_path) if destination_path is not None else DEFAULT_BOUNDARIES
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        gdf = CoordinatesLoader(str(DEFAULT_KML)).load(str(path))
     else:
-        gdf = read_file(destination_path)
+        gdf = read_file(path)
     return find_zone_by_coordinates(gdf, lat, lon)
