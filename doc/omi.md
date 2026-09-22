@@ -46,6 +46,33 @@ Semestre: da titolo (`Semestre 2025/2`) o da stem (`…20252…` → `2025-2`).
 
 `data/raw/omi/` is gitignored (sync with DVC). Unit tests use tiny inline CSV strings — not a fixtures directory.
 
+## Boundaries (perimetri zona OMI)
+
+Point-in-polygon / map → `zona_omi` (RF-04b). Cite: «Agenzia Entrate – OMI».
+
+| Campo | Valore |
+|-------|--------|
+| Fonte | GEOPOI / Forniture OMI (perimetri zona) |
+| KML (raw) | `data/raw/omi/boundaries/H501.kml` (`H501` = codice nazionale Roma) |
+| GeoJSON (processed) | `data/processed/omi/boundaries/H501.geojson` — 233 feature, sole props `zona_omi` + `geometry`, CRS **EPSG:4326** |
+| Semestre perimetro | **2025/2** (nel KML: *Anno/Semestre 2025/2*) |
+| Zone | **233** Placemark; codice zona in `ExtendedData` → `CODZONA` (= `zona_omi`) |
+| Match vs raw | set KML ≡ ZONE Roma (`Comune_ISTAT=12058091` / `QI_*_ZONE` filtrati Roma) |
+| VALORI | **213**/233 zone con quotazione; **20** zone **R** solo geometria (ok per PIP; predict può 404 se no history) |
+
+Same gitignore / DVC as other raw under `data/raw/omi/` (processed GeoJSON: DVC come gli altri `data/processed/`). Do **not** redistribute raw KML beyond attribution (aggregates / internal use ok with citation).
+
+Layout on disk:
+
+```text
+data/raw/omi/
+  QI_*_VALORI.csv / QI_*_ZONE.csv   # quotazioni (pipeline)
+  boundaries/
+    H501.kml                        # perimetri Roma 2025/2 (fonte)
+data/processed/omi/boundaries/
+  H501.geojson                      # PIP: zona_omi + geometry (da KML)
+```
+
 ## Expected columns (flexible names)
 
 | Logical field | Typical names (export ufficiale) |

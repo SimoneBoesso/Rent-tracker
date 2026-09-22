@@ -4,6 +4,12 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+class ZonaFromPointResponse(BaseModel):
+    zona_omi: str | None = None
+    lat: float | None = None
+    lon: float | None = None
+    source: str = "OMI"
+
 
 class PredictRequest(BaseModel):
     zona_omi: str = Field(..., min_length=1)

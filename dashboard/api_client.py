@@ -130,6 +130,25 @@ def zones(
         return list(resp.json()["zones"])
 
 
+def zona_from_point(
+    api_base: str,
+    lat: float,
+    lon: float,
+    timeout_s: float = DEFAULT_TIMEOUT_S,
+    client: httpx.Client | None = None,
+) -> dict[str, Any]:
+    url = f"{api_base.rstrip('/')}/meta/zona-from-point"
+    params = {"lat": lat, "lon": lon}
+    if client is not None:
+        resp = client.get(url, params=params)
+        resp.raise_for_status()
+        return resp.json()
+    with httpx.Client(timeout=timeout_s) as owned:
+        resp = owned.get(url, params=params)
+        resp.raise_for_status()
+        return resp.json()
+
+
 def ingest_omi(
     api_base: str,
     *,

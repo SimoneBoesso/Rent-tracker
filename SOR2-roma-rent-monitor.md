@@ -132,6 +132,8 @@ Prioritized for portfolio impact vs effort. Not all required to “close” v2; 
 4. **HPO:** RF-05b on semester-split OMI features  
 5. **Stretch:** Pandera, RF-04d parallelism  
 
+**Learning path** (temporal locals, asking gap, geo): step-by-step in [`doc/roadmap-learning.md`](doc/roadmap-learning.md).
+
 Immobiliare scrape: **removed from the codebase**; historical requirements in SOR v1.
 
 ---

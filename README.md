@@ -16,7 +16,7 @@
 
 *OMI profile history · next-semester fair €/m² forecast · drift / retrain monitoring*
 
-Docs: [`SOR2-roma-rent-monitor.md`](SOR2-roma-rent-monitor.md) · [`doc/omi.md`](doc/omi.md) · [`doc/usage.md`](doc/usage.md) · [`doc/drift.md`](doc/drift.md) · [`doc/render.md`](doc/render.md) · [`doc/dvc.md`](doc/dvc.md) · [`doc/roadmap-learning.md`](doc/roadmap-learning.md) · [`doc/roadmap-naive-sightings-db.md`](doc/roadmap-naive-sightings-db.md) · [`doc/postgres-vs-sqlite.md`](doc/postgres-vs-sqlite.md).
+Docs: [`SOR2-roma-rent-monitor.md`](SOR2-roma-rent-monitor.md) · [`doc/omi.md`](doc/omi.md) · [`doc/usage.md`](doc/usage.md) · [`doc/drift.md`](doc/drift.md) · [`doc/render.md`](doc/render.md) · [`doc/dvc.md`](doc/dvc.md) · [`doc/nominatim.md`](doc/nominatim.md) · [`doc/roadmap-learning.md`](doc/roadmap-learning.md) · [`doc/roadmap-naive-sightings-db.md`](doc/roadmap-naive-sightings-db.md) · [`doc/postgres-vs-sqlite.md`](doc/postgres-vs-sqlite.md).
 
 ## Problem and solution
 

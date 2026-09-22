@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from api.boundaries import resolve_zona
 
 import hmac
 from collections.abc import AsyncGenerator
@@ -26,6 +27,7 @@ from api.schemas import (
     ZonesResponse,
     SightingCreate,
     SightingResponse,
+    ZonaFromPointResponse,
 )
 from api.tipologie import list_tipologie
 from api.zone import list_zones
@@ -64,10 +66,12 @@ def create_app(
     model_path: Path | None = None,
     features_path: Path | None = None,
     sightings_path: Path | None = None,
+    boundaries_path: Path | None = None,
 ) -> FastAPI:
     path = model_path or DEFAULT_MODEL_PATH
     feats = features_path if features_path is not None else DEFAULT_INPUT
     sightings = sightings_path if sightings_path is not None else DEFAULT_PATH
+    boundaries = boundaries_path
     # lifespane (HOOKS) must be defining startup + shutdown ()
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -231,6 +235,14 @@ def create_app(
             ),
         )
 
+    @app.get("/meta/zona-from-point", response_model=ZonaFromPointResponse)
+    def zona_from_point(lat: float, lon: float) -> ZonaFromPointResponse:
+        try:
+            zona = resolve_zona(lat, lon, destination_path=boundaries)
+            return ZonaFromPointResponse(zona_omi=zona, lat=lat, lon=lon, source="OMI")
+        except Exception as e:
+            raise HTTPException(status_code=503, detail="Error resolving zona from point") from e
+
     @app.post("/ingest/omi", response_model=IngestResponse)
     async def ingest_omi(
         file: UploadFile = File(...),
@@ -269,5 +281,6 @@ def create_app(
 
     return app
 
+    
 
 app = create_app()

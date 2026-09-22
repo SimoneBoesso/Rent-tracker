@@ -14,6 +14,10 @@ if str(_ROOT) not in sys.path:
 
 import streamlit as st
 
+
+from dashboard.geocode import geocode_address
+from dashboard.api_client import zona_from_point
+
 from dashboard.api_client import health as api_health
 from dashboard.api_client import ingest_omi as api_ingest_omi
 from dashboard.api_client import create_sighting
@@ -397,6 +401,18 @@ def _try_predict_block() -> None:
         )
         return
 
+    address = st.text_input("Address", key="sighting_address", help="Enter the address")
+    if st.button("Resolve zona from address", key="resolve_zona_from_address"):
+        coordinates = geocode_address(address)
+        if coordinates is None:
+            st.error("Failed to geocode address")
+        else:
+            lat, lon = coordinates
+            zona = zona_from_point(api_base, lat, lon).get("zona_omi")
+            if zona is not None:
+                st.session_state.predict_zona = zona
+            else:
+                st.warning("Outside Rome — pick zone manually")
     c1, c2, c3 = st.columns(3)
     with c1:
         zona_omi, _ = _zona_selectbox(zone_opts, key="predict_zona")
