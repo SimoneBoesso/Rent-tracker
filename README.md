@@ -1,6 +1,6 @@
 # Rent-tracker
 
-**Roma Rent Monitor** — OMI-based fair rent (€/m²/month) for Rome: profile history by zone segment, next-semester forecasts, and drift/retrain monitoring.
+**Roma Rent Monitor** — official OMI fair rent (€/m²/month) for Rome: zone/typology history, next-semester forecast, listing sightings with address→zone, and drift/retrain monitoring.
 
 [![CI](https://github.com/SimBoex/Rent-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/SimBoex/Rent-tracker/actions/workflows/ci.yml)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
@@ -8,77 +8,78 @@
 
 ## Demo / live
 
-**Live UI (Streamlit):** [rent-tracker-ui-service.onrender.com](https://rent-tracker-ui-service.onrender.com) — deploy details in [`doc/render.md`](doc/render.md).
+**Live UI (Streamlit):** [rent-tracker-ui-service.onrender.com](https://rent-tracker-ui-service.onrender.com) — deploy in [`doc/render.md`](doc/render.md).
 
 <video src="assets/RentTracker.webm" controls width="100%" title="Roma Rent Monitor — Streamlit UI demo">
   <a href="assets/RentTracker.webm">Download the UI walkthrough (WebM)</a>
 </video>
 
-*OMI profile history · next-semester fair €/m² forecast · drift / retrain monitoring*
+*OMI profile history · fair €/m² forecast · address → zona OMI · listing sightings · drift / retrain*
 
-Docs: [`SOR2-roma-rent-monitor.md`](SOR2-roma-rent-monitor.md) · [`doc/omi.md`](doc/omi.md) · [`doc/usage.md`](doc/usage.md) · [`doc/drift.md`](doc/drift.md) · [`doc/render.md`](doc/render.md) · [`doc/dvc.md`](doc/dvc.md) · [`doc/nominatim.md`](doc/nominatim.md) · [`doc/roadmap-learning.md`](doc/roadmap-learning.md) · [`doc/roadmap-naive-sightings-db.md`](doc/roadmap-naive-sightings-db.md) · [`doc/postgres-vs-sqlite.md`](doc/postgres-vs-sqlite.md).
+**Docs:** [`doc/omi.md`](doc/omi.md) · [`doc/usage.md`](doc/usage.md) · [`doc/nominatim.md`](doc/nominatim.md) · [`doc/drift.md`](doc/drift.md) · [`doc/render.md`](doc/render.md) · [`doc/dvc.md`](doc/dvc.md) · [`doc/roadmap-naive-sightings-db.md`](doc/roadmap-naive-sightings-db.md) · [`doc/roadmap-learning.md`](doc/roadmap-learning.md) · [`doc/postgres-vs-sqlite.md`](doc/postgres-vs-sqlite.md).
 
-## Problem and solution
+## What it does
 
-Rome OMI quotes are zone-level €/m²/month ranges by typology and condition, published by semester — useful as an official benchmark, but awkward to explore over time or to turn into a forward estimate. This project loads those quotes, trains a model on the OMI mid, and serves a Streamlit UI for **profile history** (compare zona OMI / tipologia / stato over semesters) plus a **next-semester fair €/m²** forecast and **drift / retrain monitoring**. Source: **OMI Open Data**, Agenzia delle Entrate.
+Rome **OMI** quotazioni (Agenzia delle Entrate) give zone-level €/m²/month bands by typology and condition, by semester — useful official benchmarks, hard to explore over time or turn into a forward estimate.
+
+This project:
+
+1. Loads OMI locazione CSVs → features → trains a fair €/m² model (OMI mid).
+2. Serves **FastAPI** + **Streamlit**: profile history, predict / listing sighting, monitoring.
+3. Optional **asking €/m²** the user saw on a portal → gap + deal label vs OMI band (or ±10% vs model). No portal scrape.
+4. **Address → zona OMI**: Nominatim geocode + point-in-polygon on Roma boundaries (`H501`).
+5. Drift / retrain gate and admin OMI ingest (DVC / R2).
+
+Cite in UI/docs: «Agenzia Entrate – OMI».
 
 ## Architecture
 
-Actual flow (`run_pipeline.py` + monitoring CI):
-
 ```mermaid
 flowchart LR
-  A["OMI CSV\n(data/raw/omi/)"] --> B["etl.extract.omi_loader"]
-  B --> C["omi_quotazioni_latest.jsonl"]
-  C --> D["etl.transform.omi_features"]
-  D --> E["features_latest.jsonl"]
-  E --> F["ml.train\n+ MLflow"]
-  F --> G["models/baseline_latest"]
-  G --> H["FastAPI api/\nPOST /predict"]
-  E --> I["ml.drift_report\nEvidently DataDriftPreset"]
-  I --> J["reports/drift_*/summary.json"]
-  J --> K["ml.retrain_check\nMAE ratio gate"]
-  K -->|should_retrain| F
-  K --> L["reports/retrain_*/decision.json"]
-  H --> M["Streamlit dashboard\nRender UI"]
+  A["OMI CSV\n+ H501 KML"] --> B["etl omi_loader\n+ coordinates"]
+  B --> C["features_latest\n+ boundaries GeoJSON"]
+  C --> D["ml.train\n+ MLflow"]
+  D --> E["models/baseline_latest"]
+  E --> F["FastAPI"]
+  C --> F
+  F --> G["Streamlit UI"]
+  C --> H["drift_report"]
+  H --> I["retrain_check"]
+  I -->|should_retrain| D
+  Addr[address] --> Nom[Nominatim]
+  Nom --> F
 ```
 
+| Layer | Role |
+|-------|------|
+| **ETL** | OMI VALORI/ZONE → JSONL features; KML → GeoJSON zones (`CODZONA` → `zona_omi`) |
+| **ML** | `HistGradientBoostingRegressor`; temporal split by semester; MLflow |
+| **API** | `/predict`, `/sightings`, `/profile/history`, `/meta/zones`, `/meta/zona-from-point`, `/ingest/omi` |
+| **UI** | Profile overlays, listing form (address resolve + select override), monitoring |
+| **Data** | Raw OMI + GeoJSON via **DVC → R2** (not in public git) |
 
-- **Local:** `run_pipeline.py` = load → features → train (optional `--skip-train` / `--no-mlflow`)
-- **CI** (`omi-monitoring`): UI admin upload → API `/ingest/omi` → R2 inbox → `pull_ingest_inbox` → `run_pipeline.py --skip-train` → drift → `retrain_check` (MAE gate) → dashboard snapshots
+- **Local:** `run_pipeline.py` = load → features → train (`--skip-train` / `--no-mlflow` optional).
+- **CI** (`omi-monitoring`): ingest inbox → pipeline `--skip-train` → drift → retrain gate → snapshots.
 
 ## Model results
 
-Metrics from `models/baseline_latest/metrics.json` (temporal split = last OMI semester). **Naive** = \(\hat y =\) `loc_mid_lag` (prior-semester mid, same zone × typology × condition); evaluated on test rows with non-null lag.
+From `models/baseline_latest/metrics.json` (test = last OMI semester). **Naive** = prior-semester mid (`loc_mid_lag`).
 
-| Metric | HGB | Naive (`loc_mid_lag`) |
-|--------|-----|------------------------|
+| Metric | HGB | Naive |
+|--------|-----|-------|
 | **MAE** (€/m²/month) | 0.4892 | **0.4626** |
 | **RMSE** | **1.1733** | 1.3588 |
 | **R²** | **0.9610** | 0.9477 |
-| **N** (zone / typology / condition quotes) | **16 156** | |
+| **N** | **16 156** | |
 | Train / test | 14 811 / 1 345 | |
 | Features | `loc_mid_lag`, `zona_omi`, `tipologia`, `stato` | |
-| Target | `price_per_m2_monthly` (OMI mid `(LOCMIN+LOCMAX)/2`) | |
+| Target | OMI mid `(loc_min + loc_max) / 2` | |
 
-On this split the lag-1 naive wins MAE (slow series); HGB still improves RMSE/R² via cross-zone structure.
+Lag-1 naive wins MAE on this split; HGB still improves RMSE/R² via cross-zone structure.
 
 ## Tech stack
 
-- **Python 3.12** (Dockerfile + CI)
-- **scikit-learn** — `HistGradientBoostingRegressor` + pipeline
-- **pandas**, **joblib**
-- **MLflow** — local tracking (`mlflow.db`, experiment `roma-rent-baseline`)
-- **FastAPI** + **uvicorn** — serving `/predict` (+ TreeSHAP explainability)
-- **Evidently** — `DataDriftPreset` (RF-08)
-- **SHAP** — TreeExplainer on HistGradientBoosting (RF-10d)
-- **Streamlit** — dashboard (profile history + predict + monitoring)
-- **pytest**, **httpx** — tests
-- **boto3** — ingest / DVC remote (R2/S3-compatible)
-- **Docker** — API image
-- **GitHub Actions** — `ci.yml` (pytest), `daily_monitoring.yml` (OMI monitoring)
-- **DVC** (+ S3-compatible remote) — sync CSV/features without committing dumps
-- **Render** — API (Docker) + UI (Python)
+Python **3.12** · scikit-learn · pandas · GeoPandas / Shapely · FastAPI · Streamlit · MLflow · Evidently · SHAP · DVC + boto3 (R2) · Docker · GitHub Actions · Render
 
 ## Setup / Quick start
 
@@ -88,21 +89,20 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Download OMI CSVs into `data/raw/omi/` (see [`doc/omi.md`](doc/omi.md)), then:
+Place OMI `*VALORI*.csv` (and optional boundaries) under `data/raw/omi/` — see [`doc/omi.md`](doc/omi.md). Then:
 
 ```bash
-.venv/bin/python run_pipeline.py -v                             # CSV → features → train
-.venv/bin/uvicorn api.main:app --reload --port 8000             # API → http://127.0.0.1:8000/docs
-.venv/bin/python -m ml.drift_report -v
-.venv/bin/python -m ml.retrain_check --dry-run -v
+.venv/bin/python run_pipeline.py -v
+.venv/bin/uvicorn api.main:app --reload --port 8000
+export RENT_API_URL=http://127.0.0.1:8000
 .venv/bin/streamlit run dashboard/app.py
 .venv/bin/python -m pytest -q
-docker build -t rent-tracker-api . && docker run --rm -p 8000:8000 rent-tracker-api
 ```
 
-Predict example (OMI fields):
+Useful curls:
 
 ```bash
+# Fair rent + optional asking
 curl -s http://127.0.0.1:8000/predict -H 'Content-Type: application/json' -d '{
   "zona_omi": "B12",
   "tipologia": "Abitazioni civili",
@@ -110,43 +110,38 @@ curl -s http://127.0.0.1:8000/predict -H 'Content-Type: application/json' -d '{
   "loc_mid_lag": 20.0,
   "price_per_m2_monthly": 18.0
 }'
+
+# Point → zona OMI (needs boundaries via local file or DVC/R2)
+curl -s 'http://127.0.0.1:8000/meta/zona-from-point?lat=41.88036&lon=12.46302'
 ```
 
-MLflow UI: `.venv/bin/mlflow ui --backend-store-uri sqlite:///$(pwd)/mlflow.db --port 5000`
+MLflow: `.venv/bin/mlflow ui --backend-store-uri sqlite:///$(pwd)/mlflow.db --port 5000`
 
-## Data drift & retraining
+More commands: [`doc/usage.md`](doc/usage.md). Deploy: [`doc/render.md`](doc/render.md). Data sync: [`doc/dvc.md`](doc/dvc.md).
 
-1. **`ml.drift_report`** compares reference vs current (temporal split by semester) with Evidently **`DataDriftPreset`** on features (+ target and `prediction` if the model is present). Writes HTML + `summary.json` under `reports/drift_<ts>/` and `reports/drift_latest/` (includes `mae_reference` / `mae_current` and per-semester MAE).
-2. **`ml.retrain_check`** reads that summary: retrains if **`mae_current / mae_reference ≥ 1.5`** and **`n_reference ≥ 50`**. Drifted-column share is context only in `decision.json`, **not** the trigger (see [`doc/drift.md`](doc/drift.md)).
-3. The decision lands in `reports/retrain_<ts>/decision.json` and `reports/retrain_latest/`; if not `--dry-run` and `should_retrain`, it calls `ml.train` and updates `models/`. In CI (`omi-monitoring`) the same gate can commit `baseline_latest` when it fires.
+## Drift & retrain
+
+1. **`ml.drift_report`** — Evidently `DataDriftPreset` (reference vs current semester split) → `reports/drift_latest/`.
+2. **`ml.retrain_check`** — retrain if `mae_current / mae_reference ≥ 1.5` and `n_reference ≥ 50` (see [`doc/drift.md`](doc/drift.md)).
 
 ## Repository layout
 
 ```text
 Rent-tracker/
-├── api/                 # FastAPI: /health, /predict, deal_label (OMI band or ±10%), optional OMI band
-├── dashboard/           # Streamlit UI (local + Render) → calls the API
-├── data/                # raw/omi (gitignored CSVs, DVC) + processed features JSONL
-├── doc/                 # usage, omi, drift, render, dvc
-├── etl/                 # omi_loader + omi_features (+ JSONL/semester helpers)
-├── ml/                  # train, temporal split, drift_report, retrain_check, features
-├── models/              # baseline_<ts>/ and baseline_latest/ (joblib + metrics)
-├── reports/             # drift, retrain, monitoring snapshots
-├── tests/               # pytest (API, OMI, drift, retrain, split, dashboard)
-├── .github/workflows/   # ci.yml + daily_monitoring.yml (omi-monitoring)
-├── run_pipeline.py      # orchestrator: load → features → train
-├── Dockerfile           # API image (Python 3.12-slim + model)
-└── requirements.txt     # runtime / CI dependencies
+├── api/              # FastAPI (+ boundaries PIP, sightings, ingest)
+├── dashboard/        # Streamlit (+ Nominatim geocode)
+├── data/             # raw/omi + processed (DVC; gitignored dumps)
+├── doc/              # operational + roadmap docs
+├── etl/              # omi_loader, omi_features, coordinates_loader
+├── ml/               # train, drift, retrain
+├── models/           # baseline_latest (baked in API image)
+├── reports/          # drift / retrain / public snapshots
+├── tests/
+├── run_pipeline.py
+├── Dockerfile
+└── requirements.txt
 ```
 
-| Path | Role |
-|------|------|
-| `api/` | Serving: loads `models/baseline_latest`, predicts fair €/m², optional gap vs asking |
-| `data/` | OMI inputs and processed features (raw/processed via DVC, not in public git) |
-| `doc/` | Operational guides aligned with current code |
-| `etl/` | OMI CSV ingest → JSONL → feature engineering (`loc_mid_lag`, mid target) |
-| `ml/` | Training, dataset fingerprint, Evidently drift, retrain gate |
-| `models/` | Model artifacts + `metrics.json` / `dataset.json` |
-| `tests/` | Unit suite run by GitHub Actions `ci` |
-| `dashboard/` | Profile history / Monitoring UI (via API) |
-| `reports/` | Drift/retrain outputs and public aggregate snapshots |
+## Next (roadmap)
+
+Feature A (OMI perimeters → zona from address) is **done**. Next: sighting **address digest** + Postgres store — [`doc/roadmap-naive-sightings-db.md`](doc/roadmap-naive-sightings-db.md).
