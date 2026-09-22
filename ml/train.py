@@ -189,10 +189,16 @@ class Trainer:
         X_train, y_train, X_test, y_test = self.split_data()
         self.fit(X_train, y_train)
         y_pred = self.predict(X_test)
+
+        mask = X_test["loc_mid_lag"].notna()
+        naive = self.metrics_calculator.evaluate( [y for y, ok in zip(y_test, mask) if ok], X_test.loc[mask, "loc_mid_lag"].tolist())
+        naive_scores = {f"{k}_naive": v for k, v in naive.items()}
+
         metrics = self.evaluate(y_test, y_pred)
+        metrics.update(naive_scores)
+
         dataset_meta = fingerprint(self.data_loader.input_path)
         metrics["dataset"] = dataset_meta
-        self.metrics = metrics
         scores = {k: float(metrics[k]) for k in ("mae", "rmse", "r2")}
 
         run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -213,10 +219,13 @@ class Trainer:
         write_dataset_json(dataset_meta, latest_dir / "dataset.json")
 
         logger.info(
-            "Test MAE=%.3f RMSE=%.3f R2=%.3f (split=%s, n_train=%s, n_test=%s, dataset_sha256=%s) → %s",
+            "Test MAE=%.3f RMSE=%.3f R2=%.3f Naive MAE=%.3f Naive RMSE=%.3f Naive R2=%.3f (split=%s, n_train=%s, n_test=%s, dataset_sha256=%s) → %s",
             scores["mae"],
             scores["rmse"],
             scores["r2"],
+            naive_scores["mae_naive"],
+            naive_scores["rmse_naive"],
+            naive_scores["r2_naive"],
             self.split_mode,
             self.n_train,
             self.n_test,
@@ -238,7 +247,7 @@ class Trainer:
                         "dataset_sha256": dataset_meta["sha256"],
                     }
                 )
-                mlflow.log_metrics(scores)
+                mlflow.log_metrics({**scores, **naive_scores})
                 mlflow.log_artifact(str(model_path))
                 mlflow.log_artifact(str(metrics_path))
                 mlflow.log_artifact(str(dataset_path))

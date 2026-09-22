@@ -16,7 +16,7 @@
 
 *OMI profile history · next-semester fair €/m² forecast · drift / retrain monitoring*
 
-Docs: [`SOR2-roma-rent-monitor.md`](SOR2-roma-rent-monitor.md) · [`doc/omi.md`](doc/omi.md) · [`doc/usage.md`](doc/usage.md) · [`doc/drift.md`](doc/drift.md) · [`doc/render.md`](doc/render.md) · [`doc/dvc.md`](doc/dvc.md).
+Docs: [`SOR2-roma-rent-monitor.md`](SOR2-roma-rent-monitor.md) · [`doc/omi.md`](doc/omi.md) · [`doc/usage.md`](doc/usage.md) · [`doc/drift.md`](doc/drift.md) · [`doc/render.md`](doc/render.md) · [`doc/dvc.md`](doc/dvc.md) · [`doc/roadmap-learning.md`](doc/roadmap-learning.md) · [`doc/roadmap-naive-sightings-db.md`](doc/roadmap-naive-sightings-db.md).
 
 ## Problem and solution
 
@@ -49,17 +49,19 @@ flowchart LR
 
 ## Model results
 
-Metrics from `models/baseline_latest/metrics.json` (HistGradientBoostingRegressor, temporal split on the latest OMI semester):
+Metrics from `models/baseline_latest/metrics.json` (temporal split = last OMI semester). **Naive** = \(\hat y =\) `loc_mid_lag` (prior-semester mid, same zone × typology × condition); evaluated on test rows with non-null lag.
 
-| Metric | Value |
-|--------|-------|
-| **MAE** (test) | **0.4787** €/m²/month |
-| **RMSE** | 1.1438 |
-| **R²** | **0.9629** |
-| **N** (zone / typology / condition quotes) | **10 768** |
-| Train / test | 9 423 / 1 345 |
-| Features | `loc_mid_lag`, `zona_omi`, `tipologia`, `stato` |
-| Target | `price_per_m2_monthly` (OMI mid `(LOCMIN+LOCMAX)/2`) |
+| Metric | HGB | Naive (`loc_mid_lag`) |
+|--------|-----|------------------------|
+| **MAE** (€/m²/month) | 0.4892 | **0.4626** |
+| **RMSE** | **1.1733** | 1.3588 |
+| **R²** | **0.9610** | 0.9477 |
+| **N** (zone / typology / condition quotes) | **16 156** | |
+| Train / test | 14 811 / 1 345 | |
+| Features | `loc_mid_lag`, `zona_omi`, `tipologia`, `stato` | |
+| Target | `price_per_m2_monthly` (OMI mid `(LOCMIN+LOCMAX)/2`) | |
+
+On this split the lag-1 naive wins MAE (slow series); HGB still improves RMSE/R² via cross-zone structure.
 
 ## Tech stack
 

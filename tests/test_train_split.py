@@ -68,4 +68,15 @@ def test_train_smoke(tmp_path: Path):
     assert metrics["split_mode"] == "temporal_last_semester"
     assert metrics["n_train"] + metrics["n_test"] == 24
     assert "mae" in metrics and "rmse" in metrics and "r2" in metrics
+    assert "mae_naive" in metrics and "rmse_naive" in metrics and "r2_naive" in metrics
     assert (models_dir / "baseline_latest" / "metrics.json").is_file()
+
+
+def test_naive_lag_metrics_hand_calculated():
+    # errors: 0, 1, 1 → MAE = 2/3
+    y_true = [10.0, 12.0, 14.0]
+    y_lag = [10.0, 11.0, 13.0]
+    scores = MetricsCalculator().evaluate(y_true, y_lag)
+    assert scores["mae"] == round(2 / 3, 4)
+    assert scores["rmse"] == round((2/3) ** 0.5, 4)
+    assert "r2" in scores
