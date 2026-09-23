@@ -21,9 +21,10 @@ curl -s https://<api-service>.onrender.com/health
 ```
 
 Notes:
-- Container exposes `/health`, `/predict`, `/profile/history`, `/meta/zona-from-point`, `/docs`.
+- Container exposes `/health`, `/predict`, `/sightings`, `/profile/history`, `/meta/zona-from-point`, `/docs`.
 - Image copies `api/`, `ml/`, `etl/` (needed for `semester_key` / band lookup) and `models/`.
 - `models/baseline_latest/model.joblib` must be in the image or `/health` is `degraded` and `/predict` returns `503`.
+- **`DATABASE_URL`** (required for `/sightings`): see [`postgres.md`](postgres.md) (Render PostgreSQL → copy URL onto the **API** service). Schema is created on first write (`CREATE TABLE IF NOT EXISTS`). Without it, sighting posts fail. MLflow stays SQLite — do not point MLflow at this Postgres.
 - `GET /profile/history` needs `data/processed/features_latest.jsonl`. The Docker image ships the DVC pointer (`.dvc`); at startup the API downloads the JSONL from the DVC remote on R2 when `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_ENDPOINT_URL` are set (same as ingest). Without those env vars, profile history returns `503`.
 - `GET /meta/zona-from-point` needs `data/processed/omi/boundaries/H501.geojson`. The image ships the DVC pointer (`H501.geojson.dvc`); at startup the API pulls the GeoJSON from R2 when AWS_* is set (same as features). Without credentials / remote object → `503`. Do not commit the GeoJSON to git.
 - If the port is wrong, make the Docker CMD read `PORT`.
@@ -74,6 +75,7 @@ UI upload → API /ingest/omi → R2 (omi-ingest/) → workflow_dispatch omi-mon
 | Key | Value |
 |-----|--------|
 | `INGEST_TOKEN` | long random secret (type the same in the UI) |
+| `DATABASE_URL` | from Render **PostgreSQL** (sightings store; not MLflow) |
 | `AWS_ACCESS_KEY_ID` | same R2/S3 key as GitHub Actions / DVC |
 | `AWS_SECRET_ACCESS_KEY` | same secret |
 | `AWS_ENDPOINT_URL` | R2 endpoint (`https://<ACCOUNT_ID>.r2.cloudflarestorage.com`) |

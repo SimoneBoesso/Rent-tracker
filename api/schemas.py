@@ -116,6 +116,19 @@ class SightingCreate(BaseModel):
     tipologia: str
     stato: str
     asking_eur_m2: float
+    comune: str
+    cap: str
+    via: str
+    civico: str
+    interno: str | None = None
+    n_bagni: int | None = None
+    n_locali: int | None = None
+    mq: float | None = None
+    piano: int | None = None
+    ascensore: bool | None = None
+    arredato: bool | None = None
+    balcone: bool | None = None
+    terrazzo: bool | None = None
 
 class SightingStored(BaseModel):
 

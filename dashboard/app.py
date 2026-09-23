@@ -401,7 +401,11 @@ def _try_predict_block() -> None:
         )
         return
 
-    address = st.text_input("Address", key="sighting_address", help="Enter the address")
+    address = st.text_input(
+        "Address (geocode → zona)",
+        key="sighting_address",
+        help="Used only to resolve zona OMI via Nominatim + map. Dedupe uses the fields below.",
+    )
     if st.button("Resolve zona from address", key="resolve_zona_from_address"):
         coordinates = geocode_address(address)
         if coordinates is None:
@@ -413,6 +417,17 @@ def _try_predict_block() -> None:
                 st.session_state.predict_zona = zona
             else:
                 st.warning("Outside Rome — pick zone manually")
+
+    a1, a2, a3, a4 = st.columns(4)
+    with a1:
+        comune = st.text_input("comune", value="Roma", key="sighting_comune")
+    with a2:
+        cap = st.text_input("CAP", key="sighting_cap")
+    with a3:
+        via = st.text_input("via", key="sighting_via", help="e.g. Via Roma or v. Roma")
+    with a4:
+        civico = st.text_input("civico", key="sighting_civico")
+
     c1, c2, c3 = st.columns(3)
     with c1:
         zona_omi, _ = _zona_selectbox(zone_opts, key="predict_zona")
@@ -444,13 +459,14 @@ def _try_predict_block() -> None:
             key="predict_asking",
         )
 
-
-    
     if not st.button("Submit", type="primary", key="submit_sighting"):
         return
-    
+
     if actual <= 0:
         st.error("Enter a valid asking rent ÷ m².")
+        return
+    if not all(s.strip() for s in (comune, cap, via, civico)):
+        st.error("Fill comune, CAP, via, and civico (required for dedupe).")
         return
 
     payload: dict[str, Any] = {
@@ -458,6 +474,10 @@ def _try_predict_block() -> None:
         "tipologia": tipologia,
         "stato": stato,
         "asking_eur_m2": float(actual),
+        "comune": comune.strip(),
+        "cap": cap.strip(),
+        "via": via.strip(),
+        "civico": civico.strip(),
     }
     try:
         if api_base:

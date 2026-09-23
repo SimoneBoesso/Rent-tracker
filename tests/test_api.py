@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
+import uuid
 from pathlib import Path
 
 import joblib
 import pandas as pd
+import pytest
 from fastapi.testclient import TestClient
 
 from api.main import create_app
@@ -327,6 +330,9 @@ def test_health_degraded_without_model(tmp_path: Path):
 
 
 def test_sighting_response(tmp_path: Path):
+    if not os.getenv("DATABASE_URL"):
+        pytest.skip("DATABASE_URL not set")
+
     model_path = _tiny_model(tmp_path)
     feats = tmp_path / "features.jsonl"
     rows = [
@@ -336,19 +342,24 @@ def test_sighting_response(tmp_path: Path):
             "stato": "NORMALE",
             "semester": "2025-1",
             "price_per_m2_monthly": 10,
-
         }
     ]
     feats.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
-    
-    sightings = tmp_path / "sightings.jsonl"
-    with TestClient(create_app(model_path, features_path=feats, sightings_path=sightings)) as client:
-        resp = client.post("/sightings", json={
-            "zona_omi": "B12",
-            "tipologia": "Abitazioni civili",
-            "stato": "NORMALE",
-            "asking_eur_m2": 10,
-        })
+
+    with TestClient(create_app(model_path, features_path=feats)) as client:
+        resp = client.post(
+            "/sightings",
+            json={
+                "zona_omi": "B12",
+                "tipologia": "Abitazioni civili",
+                "stato": "NORMALE",
+                "asking_eur_m2": 10,
+                "comune": "Roma",
+                "cap": "00153",
+                "via": f"Via Api {uuid.uuid4().hex[:8]}",
+                "civico": "1",
+            },
+        )
         assert resp.status_code == 200
         body = resp.json()
         assert body["zona_omi"] == "B12"
@@ -356,9 +367,6 @@ def test_sighting_response(tmp_path: Path):
         assert body["stato"] == "NORMALE"
         assert body["predicted_price_per_m2_monthly"] > 0
         assert body["asking_eur_m2"] == 10
-        sightings = tmp_path / "sightings.jsonl"
-        lines = sightings.read_text().strip().splitlines()
-        assert len(lines) == 1
-        assert json.loads(lines[0])["sighting_id"] == body["sighting_id"]
-    
+        assert body["status"] == "ok"
+        assert body["sighting_id"]
 

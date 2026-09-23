@@ -64,8 +64,7 @@ Full detail: [`omi.md`](omi.md), [`dvc.md`](dvc.md), [`render.md`](render.md).
 .venv/bin/python -m ml.drift_report -v
 .venv/bin/python -m ml.retrain_check --dry-run -v
 .venv/bin/python -m ml.sightings_drift_report
-# optional: pull sightings.jsonl from R2 when local file missing/empty, or force with --pull
-# .venv/bin/python -m ml.sightings_drift_report --pull
+# needs DATABASE_URL (Postgres). Legacy JSONL/--pull only if DATABASE_URL unset.
 ```
 
 Train only:
@@ -92,11 +91,11 @@ cat models/baseline_latest/dataset.json
 | Features | `data/processed/features_*.jsonl` (+ `features_latest.jsonl`) |
 | Model | `models/baseline_<ts>/`, `models/baseline_latest/` |
 | Drift | `reports/drift_<ts>/`, `reports/drift_latest/` |
-| Sightings JSONL | `data/raw/sightings/sightings.jsonl` (user listings; not OMI) |
-| Sightings drift | `reports/sightings_drift_latest/summary.json` (MAE/bias asking vs fair; not `retrain_check`) |
+| Sightings | **Postgres** (`DATABASE_URL`) — table `sightings`, dedupe `UNIQUE(digest)` |
+| Sightings drift | `reports/sightings_drift_latest/summary.json` (MAE/bias asking vs fair from PG; not `retrain_check`) |
 | Retrain gate | `reports/retrain_<ts>/`, `reports/retrain_latest/` |
 | Dashboard | `streamlit run dashboard/app.py` (profile history · listing sightings · Admin OMI monitoring/ingest) |
-| MLflow | `mlflow.db` (SQLite) |
+| MLflow | `mlflow.db` (SQLite — not the sightings store) |
 
 ## MLflow UI
 
@@ -118,7 +117,7 @@ Open http://127.0.0.1:5000 — experiment `roma-rent-baseline`.
 |----------|------|
 | `GET /health` | Model load status |
 | `POST /predict` | Fair €/m²; optional OMI band (`omi_loc_min`/`max`, `omi_half_width`) from latest features row; optional asking → `gap_pct` + `deal_label` + `deal_basis` (`omi_band` or `model_pct`); TreeSHAP `shap_values` + `shap_base_value` (RF-10d) |
-| `POST /sightings` | Predict + persist a user listing (`asking_eur_m2`); `status=ok` appends JSONL (local + R2 when AWS_* set), `status=duplicate` skips a second row (forever dedupe on zona/tipologia/stato/asking). Does **not** touch OMI train / `retrain_check`. |
+| `POST /sightings` | Predict + persist listing in **Postgres**; requires address (`comune`, `cap`, `via`, `civico`) + OMI fields + `asking_eur_m2`; optional listing attrs. Dedupe = SHA-256 on **normalized address** (`UNIQUE(digest)`). `status=ok` \| `duplicate` (+ `duplicate_of`). Needs `DATABASE_URL`. Does **not** touch OMI train / `retrain_check`. |
 | `GET /meta/tipologie` | Distinct `tipologia` values from `features_latest.jsonl` (UI selectbox; empty list if file missing) |
 | `GET /meta/zones` | Distinct `zona_omi` (+ `descr` / `label` from features or `*ZONE*.csv`) for the UI selectbox |
 | `GET /meta/zona-from-point` | Point-in-polygon on OMI boundaries → `zona_omi` \| `null` (`lat`/`lon` query). Needs GeoJSON from DVC/R2 (see [`omi.md`](omi.md) / [`dvc.md`](dvc.md)); used by the UI after Nominatim geocode ([`nominatim.md`](nominatim.md)). Outside Rome → `zona_omi: null` (not an error). Missing boundaries → `503`. |
@@ -144,6 +143,27 @@ Deal labels: prefer OMI locazione min/max when the band is available (`deal_basi
 Optional `price_per_m2_monthly` is the user’s asking rent÷m² (portal ad), not an OMI mid lookup.  
 Public git snapshots still omit OMI €/m² (see [`omi.md`](omi.md)).
 
+## Sightings store (Postgres)
+
+Local:
+
+```bash
+docker run -d --name rent-pg -e POSTGRES_PASSWORD=rent -e POSTGRES_DB=rent \
+  -p 5432:5432 postgres:16
+export DATABASE_URL=postgresql://postgres:rent@127.0.0.1:5432/rent
+.venv/bin/uvicorn api.main:app --reload --port 8000
+```
+
+On Render, create a **Postgres** instance and set the same `DATABASE_URL` on the API service — step-by-step: [`postgres.md`](postgres.md). Full deploy notes: [`render.md`](render.md). MLflow stays on SQLite (`mlflow.db`).
+
+**Digest / dedupe** (identity of the dwelling — not OMI+asking):
+
+1. Normalize each of `comune`, `cap`, `via`, `civico` (trim, lower, collapse spaces, strip `.`/`,`, fold accents; expand `v.`→`via`, `c.so`→`corso`, `p.zza`→`piazza`; civico drop leading zeros, keep suffixes like `5/a`).
+2. Key = `comune|cap|via|civico` (order fixed). `piano` / `interno` are **not** in the key.
+3. `digest` = SHA-256 hex of that key. Listing fields / asking do not change the digest.
+
+Legacy JSONL / R2 `sightings-inbox/` is **not** used for writes; no migration (empty PG start). Drift: `python -m ml.sightings_drift_report` reads Postgres when `DATABASE_URL` is set ([`drift.md`](drift.md)). Detail: [`roadmap-postgres-intro.md`](roadmap-postgres-intro.md).
+
 Example sighting (predict + save; asking ≠ OMI mid):
 
 ```bash
@@ -151,11 +171,15 @@ curl -s http://127.0.0.1:8000/sightings -H 'Content-Type: application/json' -d '
   "zona_omi": "B12",
   "tipologia": "Abitazioni civili",
   "stato": "NORMALE",
-  "asking_eur_m2": 18.0
+  "asking_eur_m2": 18.0,
+  "comune": "Roma",
+  "cap": "00153",
+  "via": "v. Roma",
+  "civico": "05"
 }'
 ```
 
-Response includes `status` (`ok` \| `duplicate`), stored fields (`sighting_id`, `submitted_at`, fair €/m², `gap_pct`, `deal_label`, `deal_basis`), and on duplicate `duplicate_of` (prior `sighting_id`) with **no** second JSONL row. New rows land in `data/raw/sightings/sightings.jsonl` (and R2 when configured). Listing MAE/bias monitor: `python -m ml.sightings_drift_report` → `reports/sightings_drift_latest/` (see [`drift.md`](drift.md)). Dedupe design: [`sightings-jsonl-dedupe-roadmap.md`](sightings-jsonl-dedupe-roadmap.md); cloud + UI meters: [`sightings-cloud-roadmap.md`](sightings-cloud-roadmap.md).
+Response includes `status` (`ok` \| `duplicate`), stored fields (`sighting_id`, `submitted_at`, fair €/m², `gap_pct`, `deal_label`, `deal_basis`), and on duplicate `duplicate_of` (prior `sighting_id`). Same address with dirty text (`Via Roma` / `5`) must not create a second row.
 
 Profile history example:
 

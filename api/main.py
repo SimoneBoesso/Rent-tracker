@@ -180,9 +180,22 @@ def create_app(
             "gap_pct": result["gap_pct"],
             "deal_label": result["deal_label"],
             "deal_basis": result["deal_basis"],
+            "comune": body.comune,
+            "cap": body.cap,
+            "via": body.via,
+            "civico": body.civico,
+            "interno": body.interno,
+            "n_bagni": body.n_bagni,
+            "n_locali": body.n_locali,
+            "mq": body.mq,
+            "piano": body.piano,
+            "ascensore": body.ascensore,
+            "arredato": body.arredato,
+            "balcone": body.balcone,
+            "terrazzo": body.terrazzo,
         }
 
-        (status, duplicate_of) = append_sighting(sightings, record)
+        (status, duplicate_of) = append_sighting(record)
         
         return SightingResponse(**record, status=status, duplicate_of=duplicate_of)
 

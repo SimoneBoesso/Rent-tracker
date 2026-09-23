@@ -16,7 +16,7 @@
 
 *OMI profile history · fair €/m² forecast · address → zona OMI · listing sightings · drift / retrain*
 
-**Docs:** [`doc/omi.md`](doc/omi.md) · [`doc/usage.md`](doc/usage.md) · [`doc/nominatim.md`](doc/nominatim.md) · [`doc/drift.md`](doc/drift.md) · [`doc/render.md`](doc/render.md) · [`doc/dvc.md`](doc/dvc.md) · [`doc/roadmap-naive-sightings-db.md`](doc/roadmap-naive-sightings-db.md) · [`doc/roadmap-learning.md`](doc/roadmap-learning.md) · [`doc/postgres-vs-sqlite.md`](doc/postgres-vs-sqlite.md).
+**Docs:** [`doc/omi.md`](doc/omi.md) · [`doc/usage.md`](doc/usage.md) · [`doc/nominatim.md`](doc/nominatim.md) · [`doc/drift.md`](doc/drift.md) · [`doc/render.md`](doc/render.md) · [`doc/dvc.md`](doc/dvc.md) · [`doc/postgres.md`](doc/postgres.md) · [`doc/roadmap-naive-sightings-db.md`](doc/roadmap-naive-sightings-db.md) · [`doc/roadmap-postgres-intro.md`](doc/roadmap-postgres-intro.md) · [`doc/roadmap-learning.md`](doc/roadmap-learning.md) · [`doc/postgres-vs-sqlite.md`](doc/postgres-vs-sqlite.md).
 
 ## What it does
 
@@ -56,7 +56,7 @@ flowchart LR
 | **ML** | `HistGradientBoostingRegressor`; temporal split by semester; MLflow |
 | **API** | `/predict`, `/sightings`, `/profile/history`, `/meta/zones`, `/meta/zona-from-point`, `/ingest/omi` |
 | **UI** | Profile overlays, listing form (address resolve + select override), monitoring |
-| **Data** | Raw OMI + GeoJSON via **DVC → R2** (not in public git) |
+| **Data** | Raw OMI + GeoJSON via **DVC → R2**; user **sightings → Postgres** (`DATABASE_URL`) |
 
 - **Local:** `run_pipeline.py` = load → features → train (`--skip-train` / `--no-mlflow` optional).
 - **CI** (`omi-monitoring`): ingest inbox → pipeline `--skip-train` → drift → retrain gate → snapshots.
@@ -79,7 +79,7 @@ Lag-1 naive wins MAE on this split; HGB still improves RMSE/R² via cross-zone s
 
 ## Tech stack
 
-Python **3.12** · scikit-learn · pandas · GeoPandas / Shapely · FastAPI · Streamlit · MLflow · Evidently · SHAP · DVC + boto3 (R2) · Docker · GitHub Actions · Render
+Python **3.12** · scikit-learn · pandas · GeoPandas / Shapely · FastAPI · Streamlit · MLflow · Evidently · SHAP · DVC + boto3 (R2) · Postgres (psycopg) · Docker · GitHub Actions · Render
 
 ## Setup / Quick start
 
@@ -93,6 +93,8 @@ Place OMI `*VALORI*.csv` (and optional boundaries) under `data/raw/omi/` — see
 
 ```bash
 .venv/bin/python run_pipeline.py -v
+# Sightings need Postgres (local Docker example — see doc/usage.md):
+# export DATABASE_URL=postgresql://postgres:rent@127.0.0.1:5432/rent
 .venv/bin/uvicorn api.main:app --reload --port 8000
 export RENT_API_URL=http://127.0.0.1:8000
 .venv/bin/streamlit run dashboard/app.py
@@ -144,4 +146,4 @@ Rent-tracker/
 
 ## Next (roadmap)
 
-Feature A (OMI perimeters → zona from address) is **done**. Next: sighting **address digest** + Postgres store — [`doc/roadmap-naive-sightings-db.md`](doc/roadmap-naive-sightings-db.md).
+Feature A (geo) and Feature B slice (**sightings → Postgres**, address digest) are **done** — [`doc/roadmap-postgres-intro.md`](doc/roadmap-postgres-intro.md). Further learning / Phase C: [`doc/roadmap-learning.md`](doc/roadmap-learning.md).
