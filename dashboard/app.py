@@ -528,8 +528,7 @@ def _try_predict_block() -> None:
 
     shap_rows = result.get("shap_values") or []
     if shap_rows:
-
-        with st.expander("Why this fair rent? (SHAP)", expanded=False):
+        with st.expander("Why this fair rent? (SHAP)", expanded=True):
             shap_df = pd.DataFrame(shap_rows)
             shap_df["feature"] = shap_df["feature"].map(
                 lambda f: FEATURE_LABELS.get(str(f), str(f))
@@ -542,8 +541,8 @@ def _try_predict_block() -> None:
                     f"SHAP base value E[f(x)] ≈ {float(base):.2f} €/m² · "
                     "bars = contribution toward the prediction above/below that baseline."
                 )
-    
-    
+    else:
+        st.caption("SHAP explanation not returned by the API for this sighting.")
 
 def _admin_ingest_block() -> None:
     with st.expander("Admin", expanded=False):

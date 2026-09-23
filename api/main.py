@@ -196,8 +196,14 @@ def create_app(
         }
 
         (status, duplicate_of) = append_sighting(record)
-        
-        return SightingResponse(**record, status=status, duplicate_of=duplicate_of)
+
+        return SightingResponse(
+            **record,
+            status=status,
+            duplicate_of=duplicate_of,
+            shap_values=result.get("shap_values"),
+            shap_base_value=result.get("shap_base_value"),
+        )
 
     @app.get("/profile/history", response_model=ProfileHistoryResponse)
     def profile_history(

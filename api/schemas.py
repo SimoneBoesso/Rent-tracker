@@ -148,4 +148,7 @@ class SightingStored(BaseModel):
 class SightingResponse(SightingStored):
     status: str
     duplicate_of: str | None = None
+    # Same SHAP payload as /predict (response-only; not stored in Postgres)
+    shap_values: list[ShapContribution] | None = None
+    shap_base_value: float | None = None
 ####
