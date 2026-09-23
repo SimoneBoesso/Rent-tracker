@@ -13,10 +13,9 @@ import math
 import joblib
 import mlflow
 import pandas as pd
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.pipeline import Pipeline
 
-from ml.dataset_version import fingerprint, write_dataset_json
+from ml.dataset_version import write_dataset_json
 from ml.features import (
     CATEGORICAL_FEATURES,
     FEATURE_COLS,
@@ -24,15 +23,21 @@ from ml.features import (
     TARGET,
 )
 from ml.pipelines import PipelineBuilder
+from ml.selection.eval import (
+    DEFAULT_INPUT,
+    DataLoader,
+    MetricsCalculator,
+    extract_xy,
+    naive_scores,
+    prepare_holdout,
+)
 from ml.split import temporal_split as split_by_semester
 
-ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT = ROOT / "data" / "processed" / "features_latest.jsonl"
-MODELS_DIR = ROOT / "models"
-MLFLOW_DB = ROOT / "mlflow.db"
+MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
+MLFLOW_DB = Path(__file__).resolve().parents[1] / "mlflow.db"
 DEFAULT_TRACKING_URI = f"sqlite:///{MLFLOW_DB.resolve()}"
 
-# Re-export for callers that still import columns from ml.train
+# Re-export for callers that still import columns / loader from ml.train
 __all__ = [
     "CATEGORICAL_FEATURES",
     "DEFAULT_INPUT",
@@ -48,53 +53,6 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-
-
-class DataLoader:
-    def __init__(
-        self,
-        input_path: Path = DEFAULT_INPUT,
-        require_key: str = "zona_omi",
-    ):
-        self.input_path = input_path
-        self.require_key = require_key
-
-    def load(self) -> list[dict[str, Any]]:
-        if not self.input_path.is_file():
-            raise FileNotFoundError(f"Input not found: {self.input_path}")
-
-        rows: list[dict[str, Any]] = []
-        dropped_target = 0
-        dropped_key = 0
-        for line in self.input_path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            row = json.loads(line)
-            if row.get(TARGET) is None:
-                dropped_target += 1
-                continue
-            key_val = row.get(self.require_key)
-            if key_val is None or key_val == "":
-                dropped_key += 1
-                continue
-            rows.append(row)
-        logger.info(
-            "Loaded %s rows from %s (dropped missing target=%s, missing %s=%s)",
-            len(rows),
-            self.input_path,
-            dropped_target,
-            self.require_key,
-            dropped_key,
-        )
-        return rows
-
-
-class MetricsCalculator:
-    def evaluate(self, y_true: list[float], y_pred: list[float]) -> dict[str, float]:
-        mae = float(mean_absolute_error(y_true, y_pred))
-        rmse = float(math.sqrt(mean_squared_error(y_true, y_pred)))
-        r2 = float(r2_score(y_true, y_pred)) if len(y_true) >= 2 else float("nan")
-        return {"mae": round(mae, 4), "rmse": round(rmse, 4), "r2": round(r2, 4)}
 
 
 class Trainer:
@@ -118,20 +76,12 @@ class Trainer:
     def split_data(
         self,
     ) -> tuple[pd.DataFrame, list[float], pd.DataFrame, list[float]]:
-        rows = self.data_loader.load()
-        train_rows, test_rows, split_mode = split_by_semester(rows)
-        if not train_rows or not test_rows:
-            raise ValueError(
-                f"Split produced empty set (train={len(train_rows)}, test={len(test_rows)})"
-            )
-
-        self.split_mode = split_mode
-        self.n_rows = len(rows)
-        self.n_train = len(train_rows)
-        self.n_test = len(test_rows)
-        X_train, y_train = self.extract_features_and_target(train_rows)
-        X_test, y_test = self.extract_features_and_target(test_rows)
-        return X_train, y_train, X_test, y_test
+        holdout = prepare_holdout(self.data_loader.input_path, self.feature_cols)
+        self.split_mode = holdout.split_mode
+        self.n_rows = holdout.n_rows
+        self.n_train = holdout.n_train
+        self.n_test = holdout.n_test
+        return holdout.X_train, holdout.y_train, holdout.X_test, holdout.y_test
 
     def temporal_split(
         self,
@@ -143,9 +93,7 @@ class Trainer:
     def extract_features_and_target(
         self, rows: list[dict[str, Any]]
     ) -> tuple[pd.DataFrame, list[float]]:
-        X = pd.DataFrame([{c: r.get(c) for c in self.feature_cols} for r in rows])
-        y = [float(r[TARGET]) for r in rows]
-        return X, y
+        return extract_xy(rows, self.feature_cols)
 
     def fit(self, X_train: pd.DataFrame, y_train: list[float]) -> Pipeline:
         self.pipeline.fit(X_train, y_train)
@@ -186,18 +134,23 @@ class Trainer:
         tracking_uri: str | None = DEFAULT_TRACKING_URI,
     ) -> Path:
         """Holdout eval on last semester, then refit on all rows for the saved artifact."""
-        X_train, y_train, X_test, y_test = self.split_data()
+        holdout = prepare_holdout(self.data_loader.input_path, self.feature_cols)
+        self.split_mode = holdout.split_mode
+        self.n_rows = holdout.n_rows
+        self.n_train = holdout.n_train
+        self.n_test = holdout.n_test
+
+        X_train, y_train = holdout.X_train, holdout.y_train
+        X_test, y_test = holdout.X_test, holdout.y_test
+
         self.fit(X_train, y_train)
         y_pred = self.predict(X_test)
 
-        mask = X_test["loc_mid_lag"].notna()
-        naive = self.metrics_calculator.evaluate( [y for y, ok in zip(y_test, mask) if ok], X_test.loc[mask, "loc_mid_lag"].tolist())
-        naive_scores = {f"{k}_naive": v for k, v in naive.items()}
-
+        lag_naive = naive_scores(X_test, y_test)
         metrics = self.evaluate(y_test, y_pred)
-        metrics.update(naive_scores)
+        metrics.update(lag_naive)
 
-        dataset_meta = fingerprint(self.data_loader.input_path)
+        dataset_meta = holdout.dataset
         metrics["dataset"] = dataset_meta
         scores = {k: float(metrics[k]) for k in ("mae", "rmse", "r2")}
 
@@ -230,9 +183,9 @@ class Trainer:
             scores["mae"],
             scores["rmse"],
             scores["r2"],
-            naive_scores["mae_naive"],
-            naive_scores["rmse_naive"],
-            naive_scores["r2_naive"],
+            lag_naive["mae_naive"],
+            lag_naive["rmse_naive"],
+            lag_naive["r2_naive"],
             self.split_mode,
             self.n_train,
             self.n_test,
@@ -256,7 +209,7 @@ class Trainer:
                         "dataset_sha256": dataset_meta["sha256"],
                     }
                 )
-                mlflow.log_metrics({**scores, **naive_scores})
+                mlflow.log_metrics({**scores, **lag_naive})
                 mlflow.log_artifact(str(model_path))
                 mlflow.log_artifact(str(metrics_path))
                 mlflow.log_artifact(str(dataset_path))
