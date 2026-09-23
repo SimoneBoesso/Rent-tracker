@@ -1,22 +1,28 @@
 # Rent-tracker
 
-**Roma Rent Monitor** — official OMI fair rent (€/m²/month) for Rome: zone/typology history, next-semester forecast, listing sightings with address→zone, and drift/retrain monitoring.
+**Roma Rent Monitor** — end-to-end ML product on official OMI fair rent (€/m²/month) for Rome: zone/typology history, next-semester forecast, listing sightings with address→zone, SHAP explainability, and drift/retrain monitoring.
 
 [![CI](https://github.com/SimBoex/Rent-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/SimBoex/Rent-tracker/actions/workflows/ci.yml)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
+**Portfolio highlights:** FastAPI + Streamlit · geospatial address→zona OMI · model explainability (SHAP) · Evidently drift + retrain gate · DVC/R2 data versioning · Postgres sightings · CI on GitHub Actions · live deploy on Render.
+
 ## Demo / live
 
-**Live UI (Streamlit):** [rent-tracker-ui-service.onrender.com](https://rent-tracker-ui-service.onrender.com) — deploy in [`doc/render.md`](doc/render.md).
+**Live UI (Streamlit):** [rent-tracker-ui-service.onrender.com](https://rent-tracker-ui-service.onrender.com) — deploy notes in [`doc/render.md`](doc/render.md).
 
-<video src="assets/RentTracker.webm" controls width="100%" title="Roma Rent Monitor — Streamlit UI demo">
-  <a href="assets/RentTracker.webm">Download the UI walkthrough (WebM)</a>
-</video>
+### Screenshots
 
-*OMI profile history · fair €/m² forecast · address → zona OMI · listing sightings · drift / retrain*
+**Listing sighting + SHAP** — resolve address to zona OMI, compare asking vs fair €/m², see feature contributions.
 
-**Docs:** [`doc/omi.md`](doc/omi.md) · [`doc/usage.md`](doc/usage.md) · [`doc/nominatim.md`](doc/nominatim.md) · [`doc/drift.md`](doc/drift.md) · [`doc/render.md`](doc/render.md) · [`doc/dvc.md`](doc/dvc.md) · [`doc/postgres.md`](doc/postgres.md) · [`doc/roadmap-naive-sightings-db.md`](doc/roadmap-naive-sightings-db.md) · [`doc/roadmap-postgres-intro.md`](doc/roadmap-postgres-intro.md) · [`doc/roadmap-learning.md`](doc/roadmap-learning.md) · [`doc/postgres-vs-sqlite.md`](doc/postgres-vs-sqlite.md).
+![Listing sighting with SHAP explanation](assets/ui-listing-shap.png)
+
+**Admin monitoring** — drift KPIs, MAE by OMI semester, retrain gate, authenticated OMI CSV ingest (R2 + GitHub Actions).
+
+![Admin monitoring and OMI ingest](assets/ui-admin-monitoring.png)
+
+**Docs:** [`doc/omi.md`](doc/omi.md) · [`doc/usage.md`](doc/usage.md) · [`doc/nominatim.md`](doc/nominatim.md) · [`doc/drift.md`](doc/drift.md) · [`doc/render.md`](doc/render.md) · [`doc/dvc.md`](doc/dvc.md) · [`doc/postgres.md`](doc/postgres.md) · [`doc/roadmap-postgres-intro.md`](doc/roadmap-postgres-intro.md) · [`doc/postgres-vs-sqlite.md`](doc/postgres-vs-sqlite.md).
 
 ## What it does
 
@@ -131,6 +137,7 @@ More commands: [`doc/usage.md`](doc/usage.md). Deploy: [`doc/render.md`](doc/ren
 ```text
 Rent-tracker/
 ├── api/              # FastAPI (+ boundaries PIP, sightings, ingest)
+├── assets/           # UI screenshots
 ├── dashboard/        # Streamlit (+ Nominatim geocode)
 ├── data/             # raw/omi + processed (DVC; gitignored dumps)
 ├── doc/              # operational + roadmap docs
@@ -146,4 +153,4 @@ Rent-tracker/
 
 ## Next (roadmap)
 
-Feature A (geo) and Feature B slice (**sightings → Postgres**, address digest) are **done** — [`doc/roadmap-postgres-intro.md`](doc/roadmap-postgres-intro.md). Further learning / Phase C: [`doc/roadmap-learning.md`](doc/roadmap-learning.md).
+Feature A (geo) and Feature B slice (**sightings → Postgres**, address digest) are **done** — [`doc/roadmap-postgres-intro.md`](doc/roadmap-postgres-intro.md).
