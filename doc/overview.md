@@ -47,7 +47,8 @@ flowchart LR
 
 ## Model results
 
-From `models/baseline_latest/metrics.json` (test = last OMI semester). **Naive** = prior-semester mid (`loc_mid_lag`).
+From `models/baseline_latest/metrics.json` (test = last OMI semester). **Naive** = prior-semester mid (`loc_mid_lag`).  
+Train flow: **holdout metrics** on the last semester, then **refit on all rows** for the served `model.joblib` (`fit_mode=holdout_then_refit_full`).
 
 | Metric | HGB | Naive |
 |--------|-----|-------|
@@ -129,6 +130,8 @@ Rent-tracker/
 
 Feature A (geo) and Feature B slice (**sightings → Postgres**, address digest) are **done** — [`roadmap-postgres-intro.md`](roadmap-postgres-intro.md).
 
+Offline **model selection** (+ path verso ARIMA): [`roadmap-model-selection.md`](roadmap-model-selection.md).
+
 ## Topic docs
 
 | Doc | Topic |
@@ -142,3 +145,4 @@ Feature A (geo) and Feature B slice (**sightings → Postgres**, address digest)
 | [`postgres.md`](postgres.md) | Sightings DB |
 | [`postgres-vs-sqlite.md`](postgres-vs-sqlite.md) | Why Postgres |
 | [`roadmap-postgres-intro.md`](roadmap-postgres-intro.md) | Sightings roadmap |
+| [`roadmap-model-selection.md`](roadmap-model-selection.md) | Model selection + ARIMA learning path |

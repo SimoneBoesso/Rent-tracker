@@ -74,6 +74,8 @@ Train only:
 .venv/bin/python -m ml.train --no-mlflow -v
 ```
 
+`ml.train` scores MAE/RMSE/R² on the last-semester holdout, then **refits on all rows** before writing `models/baseline_latest/` (`fit_mode`, `n_fit` in `metrics.json`).
+
 ## Dataset versioning (RF-12)
 
 Each train run fingerprints the input JSONL (SHA-256 + size + row count) and writes `dataset.json` next to the model. The same block is embedded in `metrics.json` under `dataset`, and MLflow logs `dataset_sha256` + the artifact. Raw OMI CSVs stay gitignored; sync via [`dvc.md`](dvc.md).

@@ -185,7 +185,7 @@ class Trainer:
         models_dir: Path = MODELS_DIR,
         tracking_uri: str | None = DEFAULT_TRACKING_URI,
     ) -> Path:
-        """Fit baseline, write model.joblib + metrics.json, log to local MLflow."""
+        """Holdout eval on last semester, then refit on all rows for the saved artifact."""
         X_train, y_train, X_test, y_test = self.split_data()
         self.fit(X_train, y_train)
         y_pred = self.predict(X_test)
@@ -200,6 +200,13 @@ class Trainer:
         dataset_meta = fingerprint(self.data_loader.input_path)
         metrics["dataset"] = dataset_meta
         scores = {k: float(metrics[k]) for k in ("mae", "rmse", "r2")}
+
+        # Metrics stay holdout; artifact for serve uses the full history.
+        X_all = pd.concat([X_train, X_test], ignore_index=True)
+        y_all = y_train + y_test
+        self.fit(X_all, y_all)
+        metrics["fit_mode"] = "holdout_then_refit_full"
+        metrics["n_fit"] = len(y_all)
 
         run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         out_dir = models_dir / f"baseline_{run_id}"
@@ -241,8 +248,10 @@ class Trainer:
                     {
                         "model": type(self.pipeline.named_steps["model"]).__name__,
                         "split_mode": self.split_mode,
+                        "fit_mode": metrics["fit_mode"],
                         "n_train": self.n_train,
                         "n_test": self.n_test,
+                        "n_fit": metrics["n_fit"],
                         "features": ",".join(self.feature_cols),
                         "dataset_sha256": dataset_meta["sha256"],
                     }

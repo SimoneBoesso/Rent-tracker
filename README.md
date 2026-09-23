@@ -50,4 +50,5 @@ Python **3.12** · scikit-learn · GeoPandas · FastAPI · Streamlit · MLflow �
 | [`doc/usage.md`](doc/usage.md) | Commands & local workflow |
 | [`doc/omi.md`](doc/omi.md) | OMI data |
 | [`doc/render.md`](doc/render.md) | Deploy |
+| [`doc/roadmap-model-selection.md`](doc/roadmap-model-selection.md) | Offline model selection + ARIMA learning path |
 | [`doc/drift.md`](doc/drift.md) · [`doc/dvc.md`](doc/dvc.md) · [`doc/nominatim.md`](doc/nominatim.md) · [`doc/postgres.md`](doc/postgres.md) | Ops topics |
