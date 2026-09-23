@@ -94,43 +94,109 @@ Without `DATABASE_URL`, PG integration tests **skip**; digest unit tests still r
 
 ---
 
-## Cloud (Render)
+## Cloud (Render) — deploy checklist
 
-You do **not** run a second Docker “postgres” container yourself. Render provides a **managed PostgreSQL**; the existing **API** Web Service connects via env.
+You do **not** run a second Docker “postgres” container. Render provides **managed PostgreSQL**; the existing **API** Web Service connects via `DATABASE_URL`.
 
-### 1. Push code
+Full stack deploy notes: [`render.md`](render.md).
 
-Commit/push the Postgres + UI changes, then Manual Deploy API (and UI if `dashboard/` changed).
+### 0. Code on GitHub
 
-### 2. Create the database
+Working tree clean and pushed to `main` (Postgres store + dashboard address fields). Then Render can deploy the latest commit.
 
-1. Render Dashboard → **New +** → **PostgreSQL**  
-2. Create (free/starter as available)  
-3. Open the DB → copy **Internal Database URL** (preferred for the API on the same region) or External if needed  
+### 1. Create Postgres (managed)
 
-If the URL starts with `postgres://`, change it to `postgresql://` (same rest of the string) for psycopg.
+1. Open [dashboard.render.com](https://dashboard.render.com)
+2. **New +** → **PostgreSQL**
+3. Name: e.g. `rent-tracker-pg`
+4. **Region:** same as the API service
+5. Plan: Free / Starter if available → **Create Database**
+6. Wait until status is **Available**
+7. Open the DB page → copy **Internal Database URL**  
+   (preferred when API and DB share a region; use External only if you must connect from outside Render)
 
-### 3. Wire the API service
+If the URL starts with `postgres://`, rewrite as `postgresql://` (same user/host/path) for **psycopg**.
 
-1. Open the **API** (Docker) Web Service  
-2. **Environment** → **Add**  
-   - Key: `DATABASE_URL`  
-   - Value: the URL from step 2  
-3. Save (triggers redeploy)  
+### 2. Attach `DATABASE_URL` to the API
 
-Do **not** put `DATABASE_URL` on the Streamlit UI service — the UI only calls the API (`RENT_API_URL`).
+1. Render → open the **API** Web Service (Docker), **not** the Streamlit UI
+2. **Environment** → **Add Environment Variable**
+3. Key: `DATABASE_URL`  
+   Value: URL from step 1 (do not commit this string to git)
+4. **Save Changes** (usually triggers a redeploy)
 
-### 4. Verify
+Do **not** set `DATABASE_URL` on the UI service — the UI only calls the API via `RENT_API_URL`.
+
+### 3. Redeploy services
+
+1. API service → **Manual Deploy** → **Deploy latest commit** (if Save did not already redeploy)
+2. UI service → **Manual Deploy** (needed for listing form fields: comune / CAP / via / civico)
+
+Schema is created on first successful `POST /sightings` (`CREATE TABLE IF NOT EXISTS`).
+
+### 4. Smoke (live)
+
+Cold start on free tier can be slow — hit `/health` first.
 
 ```bash
 curl -s https://<api-service>.onrender.com/health
+
 curl -s https://<api-service>.onrender.com/sightings -H 'Content-Type: application/json' \
   -d '{"zona_omi":"B12","tipologia":"Abitazioni civili","stato":"NORMALE","asking_eur_m2":18.0,"comune":"Roma","cap":"00153","via":"Via Roma","civico":"5"}'
 ```
 
-Expect `status: ok` (or `duplicate` on repeat). Cold start on free tier can be slow — hit `/health` first.
+Expect JSON with `"status":"ok"` (or `"duplicate"` on a second identical address).  
+If the env is missing, the handler fails when opening Postgres — check API env and logs.
 
-UI: fill **comune / CAP / via / civico** on the listing form, then Submit (geocode address is only for zona prefill).
+UI: fill **comune / CAP / via / civico**, then Submit (geocode address line is only for zona prefill).
+
+### 5. Inspect rows (local + cloud)
+
+Data lives in table `sightings`. You do **not** need the Render CLI (`render` is not installed via `apt`; ignore suggestions like `raster3d`).
+
+**Local Docker**
+
+```bash
+docker exec -it rent-pg psql -U postgres -d rent -c \
+  "SELECT sighting_id, via, civico, asking_eur_m2, submitted_at FROM sightings ORDER BY submitted_at DESC LIMIT 20;"
+```
+
+**Cloud (Render) — fastest without installing `psql`**
+
+1. Render → your **PostgreSQL** → copy **External Database URL**  
+2. If it starts with `postgres://`, change to `postgresql://`  
+3. Use the project venv (`psycopg` already in `requirements.txt`):
+
+```bash
+export DATABASE_URL='postgresql://…'   # paste External URL; do not commit
+
+.venv/bin/python -c "
+import os, psycopg
+with psycopg.connect(os.environ['DATABASE_URL']) as c:
+    with c.cursor() as cur:
+        cur.execute('''
+          SELECT sighting_id, via, civico, asking_eur_m2, submitted_at
+          FROM sightings
+          ORDER BY submitted_at DESC
+          LIMIT 20
+        ''')
+        for row in cur.fetchall():
+            print(row)
+"
+```
+
+If you see `relation "sightings" does not exist`, no live `POST /sightings` has run yet (schema is created on first write).
+
+**Optional: install `psql`**
+
+```bash
+sudo apt install postgresql-client
+psql "$DATABASE_URL" -c "SELECT count(*) FROM sightings;"
+```
+
+GUI alternatives: DBeaver / TablePlus / pgAdmin with the same External URL.
+
+List Render **services** (API, UI, Postgres): [dashboard.render.com](https://dashboard.render.com) — no CLI required.
 
 ---
 
