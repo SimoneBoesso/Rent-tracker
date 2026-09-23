@@ -51,15 +51,15 @@ From `models/baseline_latest/metrics.json` (test = last OMI semester). **Naive**
 
 | Metric | HGB | Naive |
 |--------|-----|-------|
-| **MAE** (€/m²/month) | 0.4892 | **0.4626** |
-| **RMSE** | **1.1733** | 1.3588 |
-| **R²** | **0.9610** | 0.9477 |
+| **MAE** (€/m²/month) | 0.4762 | **0.4626** |
+| **RMSE** | **1.1889** | 1.3588 |
+| **R²** | **0.9599** | 0.9477 |
 | **N** | **16 156** | |
 | Train / test | 14 811 / 1 345 | |
 | Features | `loc_mid_lag`, `zona_omi`, `tipologia`, `stato` | |
 | Target | OMI mid `(loc_min + loc_max) / 2` | |
 
-Lag-1 naive wins MAE on this split; HGB still improves RMSE/R² via cross-zone structure.
+Lag-1 naive wins MAE on this split; HGB still improves RMSE/R² via cross-zone structure. HGB treats ordinal-encoded categoricals as numeric so TreeSHAP stays additive (`base + Σ shap ≈ fair`).
 
 ## Setup / Quick start
 

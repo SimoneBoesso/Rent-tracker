@@ -14,13 +14,15 @@ class RegressorFactory(Protocol):
 
 
 class HistGradientBoostingFactory:
-    """Default baseline: HGB with native categorical indices after ColumnTransformer."""
+    """Default baseline: HGB on ordinal-encoded cats (no native categorical_features).
+
+    Native HGB categoricals break TreeSHAP additivity (shap 0.52 / sklearn 1.9);
+    OrdinalEncoder + numeric splits keeps RF-10d explanations reconstructible.
+    ``cat_idx`` is accepted for RegressorFactory compatibility and ignored.
+    """
 
     def make(self, cat_idx: list[int]) -> BaseEstimator:
-        return HistGradientBoostingRegressor(
-            random_state=42,
-            categorical_features=cat_idx,  # pyright: ignore[reportArgumentType]
-        )
+        return HistGradientBoostingRegressor(random_state=42)
 
 
 class RidgeFactory:

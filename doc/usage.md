@@ -138,7 +138,7 @@ curl -s http://127.0.0.1:8000/predict -H 'Content-Type: application/json' -d '{
 ```
 
 Response includes model fair mid plus, when `features_latest.jsonl` is present, the **OMI locazione band** for that zona/tipologia/stato (latest semester): `omi_loc_min`, `omi_loc_max`, `omi_half_width`, `band_source="omi"`. That band is market variability from Agenzia Entrate, not a model confidence interval.  
-`shap_values` (sorted by \|contribution\|) and `shap_base_value` explain the prediction via TreeSHAP on the preprocessed features.  
+`shap_values` (sorted by \|contribution\|) and `shap_base_value` explain the prediction via TreeSHAP on the preprocessed features (`base + Σ shap ≈ predicted`; HGB treats ordinal-encoded cats as numeric so TreeSHAP stays additive).  
 Deal labels: prefer OMI locazione min/max when the band is available (`deal_basis=omi_band`); otherwise ±10% on `(asking - fair) / fair` (`deal_basis=model_pct`). Labels stay `below_omi_band` / `in_band` / `above_omi_band`.  
 Optional `price_per_m2_monthly` is the user’s asking rent÷m² (portal ad), not an OMI mid lookup.  
 Public git snapshots still omit OMI €/m² (see [`omi.md`](omi.md)).

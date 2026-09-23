@@ -115,9 +115,10 @@ def test_predictor_score(tmp_path: Path):
     assert out["shap_values"]
     assert {row["feature"] for row in out["shap_values"]} == set(FEATURE_COLS)
     assert out["shap_base_value"] is not None
-
-
-def test_predictor_score_skip_shap(tmp_path: Path):
+    shap_sum = sum(float(row["shap_value"]) for row in out["shap_values"])
+    assert out["predicted_price_per_m2_monthly"] == pytest.approx(
+        float(out["shap_base_value"]) + shap_sum, abs=1e-3
+    )
     model_path = _tiny_model(tmp_path)
     pred = ModelPredictor(model_path, features_path=None)
     out = pred.score(
