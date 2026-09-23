@@ -12,9 +12,17 @@
 
 **Live UI:** [rent-tracker-ui-service.onrender.com](https://rent-tracker-ui-service.onrender.com)
 
-**Listing sighting + SHAP** — address → zona OMI, asking vs fair €/m², feature contributions.
+**Profile history** — compare OMI zone / typology / condition mid lines and next-semester fair €/m².
 
-![Listing sighting with SHAP explanation](assets/ui-listing-shap.png)
+![OMI profile history chart](assets/ui-profile_history.png)
+
+**Listing you saw** — address → zona OMI, submit a sighting, asking vs fair / OMI band.
+
+![Listing sighting form](assets/ui-listing-you-saw.png)
+
+**SHAP explainability** — feature contributions toward the fair €/m² prediction.
+
+![SHAP feature contributions](assets/ui-shap-values.png)
 
 **Admin monitoring** — drift KPIs, MAE by semester, retrain gate, OMI ingest (R2 + GitHub Actions).
 
