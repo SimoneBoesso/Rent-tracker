@@ -7,9 +7,10 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder
+from ml.pipelines.config import champion_factory 
 
 from ml.features import CATEGORICAL_FEATURES, NUMERIC_FEATURES
-from ml.pipelines.interface import RegressorFactory, default_hgb_factory
+from ml.pipelines.interface import RegressorFactory
 
 
 class FillNanConstant(BaseEstimator, TransformerMixin):
@@ -64,7 +65,7 @@ def make_serving_pipeline(
         if categorical_features is None
         else list(categorical_features)
     )
-    factory = default_hgb_factory() if regressor_factory is None else regressor_factory
+    factory = regressor_factory if regressor_factory is not None else champion_factory() 
     return Pipeline(
         steps=[
             ("pre", make_preprocessor(numeric, categorical)),

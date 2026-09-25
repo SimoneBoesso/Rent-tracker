@@ -110,3 +110,8 @@ def grid_search_candidates() -> list[CandidateConfig]:
         )
 
     return out
+
+
+def champion_factory() -> RegressorFactory:
+    """Return the factory with the best model."""
+    return hgb_factory(random_state=42)
