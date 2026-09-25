@@ -76,6 +76,20 @@ Train only:
 
 `ml.train` scores MAE/RMSE/R² on the last-semester holdout, then **refits on all rows** before writing `models/baseline_latest/` (`fit_mode`, `n_fit` in `metrics.json`).
 
+Recipe for that artifact comes from `champion_factory()` in `ml/pipelines/config.py` (default HGB). Promote = edit that factory → re-run train → commit `models/baseline_latest/` — not auto-pick from MLflow.
+
+## Offline model selection (not CI / not serve)
+
+Compare challengers on the **same** last-semester holdout; logs to MLflow experiment `roma-rent-selection` (nested parent/child). Does **not** write `baseline_latest`. CI (`omi-monitoring`) never runs this.
+
+```bash
+# MLflow UI must be up (same sqlite store)
+.venv/bin/mlflow ui --backend-store-uri sqlite:///$(pwd)/mlflow.db --port 5000
+.venv/bin/python -m ml.selection.select_models
+```
+
+Promote gate = **MAE** vs current champion. Naive may win MAE as a baseline; serve stays a tabular regressor (HGB) unless you explicitly change `champion_factory`. Details: [`roadmap-model-selection.md`](roadmap-model-selection.md).
+
 ## Dataset versioning (RF-12)
 
 Each train run fingerprints the input JSONL (SHA-256 + size + row count) and writes `dataset.json` next to the model. The same block is embedded in `metrics.json` under `dataset`, and MLflow logs `dataset_sha256` + the artifact. Raw OMI CSVs stay gitignored; sync via [`dvc.md`](dvc.md).
@@ -107,7 +121,7 @@ Training uses SQLite (`mlflow.db`). Prefer this over `./mlruns` with MLflow 3.
 .venv/bin/mlflow ui --backend-store-uri sqlite:///$(pwd)/mlflow.db --port 5000
 ```
 
-Open http://127.0.0.1:5000 — experiment `roma-rent-baseline`.
+Open http://127.0.0.1:5000 — experiments `roma-rent-baseline` (train) and `roma-rent-selection` (offline grid).
 
 ## Predict API
 

@@ -52,7 +52,7 @@ def make_preprocessor(
     )
     return ColumnTransformer(transformers=transformers)
 
-
+# this is used for both model selection and model serving
 def make_serving_pipeline(
     regressor_factory: RegressorFactory | None = None,
     numeric_features: list[str] | None = None,

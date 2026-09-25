@@ -60,7 +60,7 @@ Train flow: **holdout metrics** on the last semester, then **refit on all rows**
 | Features | `loc_mid_lag`, `zona_omi`, `tipologia`, `stato` | |
 | Target | OMI mid `(loc_min + loc_max) / 2` | |
 
-Lag-1 naive wins MAE on this split; HGB still improves RMSE/R² via cross-zone structure. HGB treats ordinal-encoded categoricals as numeric so TreeSHAP stays additive (`base + Σ shap ≈ fair`).
+Lag-1 naive wins MAE on this split; HGB still improves RMSE/R² via cross-zone structure. Served champion stays HGB (`champion_factory`); offline selection may rank naive higher on MAE without promoting it. HGB treats ordinal-encoded categoricals as numeric so TreeSHAP stays additive (`base + Σ shap ≈ fair`). See [`roadmap-model-selection.md`](roadmap-model-selection.md).
 
 ## Setup / Quick start
 

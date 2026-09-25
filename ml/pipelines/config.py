@@ -113,5 +113,5 @@ def grid_search_candidates() -> list[CandidateConfig]:
 
 
 def champion_factory() -> RegressorFactory:
-    """Return the factory with the best model."""
+    """Serve / ``ml.train`` recipe (manual promote). Not the MLflow selection winner."""
     return hgb_factory(random_state=42)
