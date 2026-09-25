@@ -5,13 +5,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ml.train import DataLoader, MetricsCalculator, PipelineBuilder, Trainer, train
+from ml.pipelines import make_serving_pipeline
+from ml.train import DataLoader, MetricsCalculator, Trainer, train
 from tests.omi_rows import omi_feature_row
 
 
 def _trainer(input_path: Path | None = None) -> Trainer:
     return Trainer(
-        pipeline=PipelineBuilder().build(),
+        pipeline=make_serving_pipeline(),
         metrics_calculator=MetricsCalculator(),
         data_loader=DataLoader(input_path) if input_path is not None else DataLoader(),
     )

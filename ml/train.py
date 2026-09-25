@@ -22,7 +22,7 @@ from ml.features import (
     NUMERIC_FEATURES,
     TARGET,
 )
-from ml.pipelines import PipelineBuilder
+from ml.pipelines import make_serving_pipeline
 from ml.selection.eval import (
     DEFAULT_INPUT,
     DataLoader,
@@ -260,7 +260,10 @@ def train(
 
     feature_cols = list(numeric) + list(CATEGORICAL_FEATURES)
     trainer = Trainer(
-        pipeline=PipelineBuilder(list(numeric), list(CATEGORICAL_FEATURES)).build(),
+        pipeline=make_serving_pipeline(
+            numeric_features=list(numeric),
+            categorical_features=list(CATEGORICAL_FEATURES),
+        ),
         metrics_calculator=MetricsCalculator(),
         data_loader=loader,
         feature_cols=feature_cols,
