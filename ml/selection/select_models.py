@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import argparse
 from datetime import datetime, timezone
 
 import mlflow
 import pandas as pd
 
 from ml.pipelines import make_serving_pipeline
-from ml.pipelines.config import CandidateConfig, default_candidates, grid_search_candidates
+from ml.pipelines.config import (
+    ARCHITECTURES,
+    CandidateConfig,
+    grid_search_candidates,
+)
 from ml.selection.eval import (
     DEFAULT_INPUT,
     HoldoutBundle,
@@ -62,6 +67,8 @@ def train_and_evaluate_model(
 def select_models(
     configs: list[CandidateConfig],
     holdout: HoldoutBundle,
+    notes: str | None = None,
+    architecture: str | None = None,
 ) -> CandidateConfig | None:
     """Run all configs as nested children; parent holds search metadata + best_*."""
     X_train, y_train = holdout.X_train, holdout.y_train
@@ -80,6 +87,11 @@ def select_models(
         mlflow.log_param("n_train", holdout.n_train)
         mlflow.log_param("n_test", holdout.n_test)
         mlflow.log_param("n_candidates", len(configs))
+        if architecture:
+            mlflow.log_param("architecture", architecture)
+        if notes:
+            mlflow.set_tag("notes", notes)
+            mlflow.log_param("notes", notes)
 
         for cfg in configs:
             metrics = train_and_evaluate_model(
@@ -96,13 +108,60 @@ def select_models(
     return best_cfg
 
 
+_EXPERIMENT_BY_ARCHITECTURE = {
+    "hgb": "roma-rent-hgb-optimization",
+    "ridge": "roma-rent-ridge-optimization",
+    "lr": "roma-rent-lr-optimization",
+    "linear": "roma-rent-linear-optimization",
+}
+
+
 def main() -> None:
-    mlflow.set_tracking_uri("http://127.0.0.1:5000")
-    mlflow.set_experiment("roma-rent-selection")
+    parser = argparse.ArgumentParser(description="Offline model selection (MLflow nested).")
+    parser.add_argument(
+        "--experiment-name",
+        type=str,
+        default=None,
+        help=(
+            "MLflow experiment (default from --architecture: "
+            "hgb→roma-rent-hgb-optimization, …)"
+        ),
+    )
+    parser.add_argument(
+        "--tracking-uri",
+        type=str,
+        default="http://127.0.0.1:5000",
+    )
+    parser.add_argument(
+        "--notes",
+        type=str,
+        default=None,
+        help="Optional tag/param on the parent run (e.g. lag-only)",
+    )
+    parser.add_argument(
+        "--architecture",
+        type=str,
+        choices=list(ARCHITECTURES),
+        default="hgb",
+        help="Which family to grid: hgb | ridge | lr | linear (=ridge+lr)",
+    )
+    args = parser.parse_args()
+
+    experiment_name = args.experiment_name or _EXPERIMENT_BY_ARCHITECTURE[args.architecture]
+
+    mlflow.set_tracking_uri(args.tracking_uri)
+    mlflow.set_experiment(experiment_name)
 
     holdout = prepare_holdout(DEFAULT_INPUT)
-    best = select_models(grid_search_candidates(), holdout)
-    print(best)
+    configs = grid_search_candidates(architecture=args.architecture)
+    best = select_models(
+        configs,
+        holdout,
+        notes=args.notes,
+        architecture=args.architecture,
+    )
+    print(f"experiment={experiment_name} best={best}")
+
 
 
 if __name__ == "__main__":

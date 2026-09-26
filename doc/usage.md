@@ -80,12 +80,12 @@ Recipe for that artifact comes from `champion_factory()` in `ml/pipelines/config
 
 ## Offline model selection (not CI / not serve)
 
-Compare challengers on the **same** last-semester holdout; logs to MLflow experiment `roma-rent-selection` (nested parent/child). Does **not** write `baseline_latest`. CI (`omi-monitoring`) never runs this.
+Compare challengers on the **same** last-semester holdout; logs to MLflow under an experiment derived from `--architecture` (e.g. `roma-rent-hgb-optimization`). Does **not** write `baseline_latest`. CI (`omi-monitoring`) never runs this.
 
 ```bash
 # MLflow UI must be up (same sqlite store)
 .venv/bin/mlflow ui --backend-store-uri sqlite:///$(pwd)/mlflow.db --port 5000
-.venv/bin/python -m ml.selection.select_models
+.venv/bin/python -m ml.selection.select_models --architecture hgb --notes lag-only
 ```
 
 Promote gate = **MAE** vs current champion. Naive may win MAE as a baseline; serve stays a tabular regressor (HGB) unless you explicitly change `champion_factory`. Details: [`roadmap-model-selection.md`](roadmap-model-selection.md).
@@ -121,7 +121,7 @@ Training uses SQLite (`mlflow.db`). Prefer this over `./mlruns` with MLflow 3.
 .venv/bin/mlflow ui --backend-store-uri sqlite:///$(pwd)/mlflow.db --port 5000
 ```
 
-Open http://127.0.0.1:5000 — experiments `roma-rent-baseline` (train) and `roma-rent-selection` (offline grid).
+Open http://127.0.0.1:5000 — `roma-rent-baseline` (train) and selection experiments such as `roma-rent-hgb-optimization`.
 
 ## Predict API
 
