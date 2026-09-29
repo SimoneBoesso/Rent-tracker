@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-23T15:47:32.612782+00:00",
-  "input": "/home/simone/Scrivania/Rent-tracker/data/processed/features_latest.jsonl",
+  "generated_at": "2026-09-29T07:52:56.595247+00:00",
+  "input": "data/processed/features_latest.jsonl",
   "model": "HistGradientBoostingRegressor",
   "features": [
     "loc_mid_lag",
@@ -21,10 +21,10 @@
   "r2_naive": 0.9477,
   "dataset": {
     "path": "/home/simone/Scrivania/Rent-tracker/data/processed/features_latest.jsonl",
-    "sha256": "4759462be192deddc3eff3cb5a3ea0c80ed02e25021d576774d9d715cdea7857",
-    "nbytes": 10693102,
+    "sha256": "7ba91b7f31a58c0ab5c6233b12fdbcb25e73a574c224023dcc7eeb8af8de0b8d",
+    "nbytes": 12360159,
     "n_rows": 32786,
-    "mtime_utc": "2026-09-23T15:46:53.219899+00:00"
+    "mtime_utc": "2026-09-25T15:21:59.525673+00:00"
   },
   "fit_mode": "holdout_then_refit_full",
   "n_fit": 32786

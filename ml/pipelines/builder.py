@@ -7,6 +7,9 @@ from sklearn.pipeline import Pipeline
 
 from ml.pipelines.interface import RegressorFactory, default_hgb_factory
 
+# joblib back-compat: models pickled before preprocess split look up this name here
+from ml.pipelines.preprocess import FillNanConstant  # noqa: F401
+
 
 class PipelineBuilder:
     """Build the estimator via ``RegressorFactory`` — no ColumnTransformer here."""
