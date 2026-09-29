@@ -74,6 +74,27 @@ Train only:
 .venv/bin/python -m ml.train --no-mlflow -v
 ```
 
+`ml.train` scores MAE/RMSE/R² on the last-semester holdout, then **refits on all rows** before writing `models/baseline_latest/` (`fit_mode`, `n_fit` in `metrics.json`).
+
+Recipe for that artifact comes from `champion_factory()` in `ml/pipelines/config.py` (default HGB). Promote = edit that factory → re-run train → commit `models/baseline_latest/` — not auto-pick from MLflow.
+
+## Offline model selection (not CI / not serve)
+
+Compare challengers on the **same** last-semester holdout; logs to MLflow under an experiment derived from `--architecture` (e.g. `roma-rent-hgb-optimization`). Does **not** write `baseline_latest`. CI (`omi-monitoring`) never runs this.
+
+```bash
+# MLflow UI must be up (same sqlite store)
+.venv/bin/mlflow ui --backend-store-uri sqlite:///$(pwd)/mlflow.db --port 5000
+.venv/bin/python -m ml.selection.select_models --architecture hgb --notes lag-only
+# SES challenger (series view, same features_latest; experiment roma-rent-ses-optimization)
+.venv/bin/python -m ml.selection.select_ses --notes offline-ses
+# ARIMA challenger (fixed order; experiment roma-rent-arima-optimization)
+.venv/bin/python -m ml.selection.select_arima --order 1,0,0 --notes offline-arima
+# Why (0,1,0) matches naive / SES ≈ lag-1: temporal.md
+```
+
+Promote gate = **MAE** vs current champion. Naive may win MAE as a baseline; serve stays a tabular regressor (HGB) unless you explicitly change `champion_factory`.
+
 ## Dataset versioning (RF-12)
 
 Each train run fingerprints the input JSONL (SHA-256 + size + row count) and writes `dataset.json` next to the model. The same block is embedded in `metrics.json` under `dataset`, and MLflow logs `dataset_sha256` + the artifact. Raw OMI CSVs stay gitignored; sync via [`dvc.md`](dvc.md).
@@ -105,7 +126,7 @@ Training uses SQLite (`mlflow.db`). Prefer this over `./mlruns` with MLflow 3.
 .venv/bin/mlflow ui --backend-store-uri sqlite:///$(pwd)/mlflow.db --port 5000
 ```
 
-Open http://127.0.0.1:5000 — experiment `roma-rent-baseline`.
+Open http://127.0.0.1:5000 — `roma-rent-baseline` (train) and selection experiments such as `roma-rent-hgb-optimization`.
 
 ## Predict API
 

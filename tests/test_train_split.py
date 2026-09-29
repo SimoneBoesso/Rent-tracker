@@ -5,13 +5,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ml.train import DataLoader, MetricsCalculator, PipelineBuilder, Trainer, train
+from ml.pipelines import make_serving_pipeline
+from ml.train import DataLoader, MetricsCalculator, Trainer, train
 from tests.omi_rows import omi_feature_row
 
 
 def _trainer(input_path: Path | None = None) -> Trainer:
     return Trainer(
-        pipeline=PipelineBuilder().build(),
+        pipeline=make_serving_pipeline(),
         metrics_calculator=MetricsCalculator(),
         data_loader=DataLoader(input_path) if input_path is not None else DataLoader(),
     )
@@ -67,9 +68,15 @@ def test_train_smoke(tmp_path: Path):
     assert (out / "model.joblib").is_file()
     assert metrics["split_mode"] == "temporal_last_semester"
     assert metrics["n_train"] + metrics["n_test"] == 24
+    assert metrics["fit_mode"] == "holdout_then_refit_full"
+    assert metrics["n_fit"] == metrics["n_rows"] == 24
     assert "mae" in metrics and "rmse" in metrics and "r2" in metrics
     assert "mae_naive" in metrics and "rmse_naive" in metrics and "r2_naive" in metrics
-    assert (models_dir / "baseline_latest" / "metrics.json").is_file()
+    latest = json.loads(
+        (models_dir / "baseline_latest" / "metrics.json").read_text(encoding="utf-8")
+    )
+    assert latest["fit_mode"] == "holdout_then_refit_full"
+    assert latest["n_fit"] == 24
 
 
 def test_naive_lag_metrics_hand_calculated():

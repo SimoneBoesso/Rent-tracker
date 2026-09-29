@@ -10,7 +10,8 @@ from fastapi.testclient import TestClient
 
 from api.ingest import IngestError, ingest_omi_csv, sync_manifest_from_disk
 from api.main import create_app
-from ml.train import FEATURE_COLS, PipelineBuilder
+from ml.pipelines import make_serving_pipeline
+from ml.train import FEATURE_COLS
 from tests.omi_rows import omi_feature_row
 from tests.test_omi import _CSV_2024_1, _CSV_2024_2
 
@@ -19,7 +20,7 @@ def _tiny_model(tmp_path: Path) -> Path:
     rows = [omi_feature_row(i, day="2026-09-08", loc_mid_lag=15.0 + i) for i in range(24)]
     X = pd.DataFrame([{c: r.get(c) for c in FEATURE_COLS} for r in rows])
     y = [float(r["price_per_m2_monthly"]) for r in rows]
-    pipe = PipelineBuilder().build()
+    pipe = make_serving_pipeline()
     pipe.fit(X, y)
     path = tmp_path / "model.joblib"
     joblib.dump(pipe, path)

@@ -1,39 +1,73 @@
-"""Regressor factory contract for plug-in models in the OMI pipeline."""
+"""Regressor factory contract — one parametric factory for sklearn estimators."""
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 
+import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import LinearRegression, Ridge
 
 
+class LagNaiveRegressor(BaseEstimator):
+    """Predict previous-semester mid (= loc_mid_lag column)."""
+
+    def fit(self, X, y=None):
+        return self
+
+    def predict(self, X):
+        # X DataFrame with loc_mid_lag *before* preprocessor
+        return np.asarray(X["loc_mid_lag"], dtype=float)
+
 class RegressorFactory(Protocol):
-    def make(self, cat_idx: list[int]) -> BaseEstimator: ...
+    model_name: str
+
+    def make(self) -> BaseEstimator: ...
 
 
-class HistGradientBoostingFactory:
-    """Default baseline: HGB on ordinal-encoded cats (no native categorical_features).
+class SklearnRegressorFactory:
+    """Single factory: name + estimator class + kwargs."""
 
-    Native HGB categoricals break TreeSHAP additivity (shap 0.52 / sklearn 1.9);
-    OrdinalEncoder + numeric splits keeps RF-10d explanations reconstructible.
-    ``cat_idx`` is accepted for RegressorFactory compatibility and ignored.
-    """
+    def __init__(
+        self,
+        model_name: str,
+        estimator_cls: type[BaseEstimator],
+        **kwargs: Any,
+    ):
+        self.model_name = model_name
+        self._estimator_cls = estimator_cls
+        self._kwargs = kwargs
 
-    def make(self, cat_idx: list[int]) -> BaseEstimator:
-        return HistGradientBoostingRegressor(random_state=42)
-
-
-class RidgeFactory:
-    """Simple linear baseline; ignores cat_idx (cats already ordinal-encoded)."""
-
-    def make(self, cat_idx: list[int]) -> BaseEstimator:
-        return Ridge()
+    def make(self) -> BaseEstimator:
+        return self._estimator_cls(**self._kwargs)
 
 
-class LinearRegressionFactory:
-    """OLS linear regression; ignores cat_idx (cats already ordinal-encoded)."""
+def default_hgb_factory() -> SklearnRegressorFactory:
+    """Production default (TreeSHAP-friendly when used after ordinal preprocess)."""
+    return SklearnRegressorFactory(
+        "HistGradientBoosting",
+        HistGradientBoostingRegressor,
+        random_state=42,
+    )
 
-    def make(self, cat_idx: list[int]) -> BaseEstimator:
-        return LinearRegression()
+
+# Convenience constructors for selection config
+def hgb_factory(**kwargs: Any) -> SklearnRegressorFactory:
+    kw = {"random_state": 42, **kwargs}
+    return SklearnRegressorFactory("HistGradientBoosting", HistGradientBoostingRegressor, **kw)
+
+
+def ridge_factory(**kwargs: Any) -> SklearnRegressorFactory:
+    kw = {"random_state": 42, **kwargs}
+    return SklearnRegressorFactory("Ridge", Ridge, **kw)
+
+
+def lr_factory(**kwargs: Any) -> SklearnRegressorFactory:
+    return SklearnRegressorFactory("LinearRegression", LinearRegression, **kwargs)
+
+
+## come faccio qui a creare la naive factory?
+# deve ritornare il valore del semestre precedente
+def naive_factory(**kwargs: Any) -> SklearnRegressorFactory:
+    return SklearnRegressorFactory("Naive", LagNaiveRegressor, **kwargs)
