@@ -86,9 +86,14 @@ Compare challengers on the **same** last-semester holdout; logs to MLflow under 
 # MLflow UI must be up (same sqlite store)
 .venv/bin/mlflow ui --backend-store-uri sqlite:///$(pwd)/mlflow.db --port 5000
 .venv/bin/python -m ml.selection.select_models --architecture hgb --notes lag-only
+# SES challenger (series view, same features_latest; experiment roma-rent-ses-optimization)
+.venv/bin/python -m ml.selection.select_ses --notes offline-ses
+# ARIMA challenger (fixed order; experiment roma-rent-arima-optimization)
+.venv/bin/python -m ml.selection.select_arima --order 1,0,0 --notes offline-arima
+# Why (0,1,0) matches naive / SES ≈ lag-1: temporal.md
 ```
 
-Promote gate = **MAE** vs current champion. Naive may win MAE as a baseline; serve stays a tabular regressor (HGB) unless you explicitly change `champion_factory`. Details: [`roadmap-model-selection.md`](roadmap-model-selection.md).
+Promote gate = **MAE** vs current champion. Naive may win MAE as a baseline; serve stays a tabular regressor (HGB) unless you explicitly change `champion_factory`.
 
 ## Dataset versioning (RF-12)
 

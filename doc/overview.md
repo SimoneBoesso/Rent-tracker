@@ -60,7 +60,7 @@ Train flow: **holdout metrics** on the last semester, then **refit on all rows**
 | Features | `loc_mid_lag`, `zona_omi`, `tipologia`, `stato` | |
 | Target | OMI mid `(loc_min + loc_max) / 2` | |
 
-Lag-1 naive wins MAE on this split; HGB still improves RMSE/R² via cross-zone structure. Served champion stays HGB (`champion_factory`); offline selection may rank naive higher on MAE without promoting it. HGB treats ordinal-encoded categoricals as numeric so TreeSHAP stays additive (`base + Σ shap ≈ fair`). See [`roadmap-model-selection.md`](roadmap-model-selection.md).
+Lag-1 naive wins MAE on this split; HGB still improves RMSE/R² via cross-zone structure. Served champion stays HGB (`champion_factory`); offline selection may rank naive higher on MAE without promoting it. HGB treats ordinal-encoded categoricals as numeric so TreeSHAP stays additive (`base + Σ shap ≈ fair`).
 
 ## Setup / Quick start
 
@@ -130,7 +130,7 @@ Rent-tracker/
 
 Feature A (geo) and Feature B slice (**sightings → Postgres**, address digest) are **done** — [`roadmap-postgres-intro.md`](roadmap-postgres-intro.md).
 
-Offline **model selection** (+ path verso ARIMA): [`roadmap-model-selection.md`](roadmap-model-selection.md).
+Offline **model selection** (panel grid + SES/ARIMA series challengers) is in-repo under `ml/selection/`; serve champion remains HGB — see root [`README.md`](../README.md) § ML / MLOps.
 
 ## Topic docs
 
@@ -138,6 +138,7 @@ Offline **model selection** (+ path verso ARIMA): [`roadmap-model-selection.md`]
 |-----|--------|
 | [`omi.md`](omi.md) | OMI download & CSV layout |
 | [`usage.md`](usage.md) | Commands, CI, local Postgres |
+| [`temporal.md`](temporal.md) | SES & ARIMA (equations + cases tried) |
 | [`nominatim.md`](nominatim.md) | Address → coordinates |
 | [`drift.md`](drift.md) | Drift & retrain gate |
 | [`dvc.md`](dvc.md) | DVC → R2 |
@@ -145,4 +146,3 @@ Offline **model selection** (+ path verso ARIMA): [`roadmap-model-selection.md`]
 | [`postgres.md`](postgres.md) | Sightings DB |
 | [`postgres-vs-sqlite.md`](postgres-vs-sqlite.md) | Why Postgres |
 | [`roadmap-postgres-intro.md`](roadmap-postgres-intro.md) | Sightings roadmap |
-| [`roadmap-model-selection.md`](roadmap-model-selection.md) | Model selection + ARIMA learning path |
