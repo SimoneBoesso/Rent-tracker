@@ -1,104 +1,194 @@
 {
-  "generated_at": "2026-09-19T13:16:21.057964+00:00",
+  "generated_at": "2026-10-01T11:57:23.692204+00:00",
   "source_attribution": "Agenzia Entrate – OMI",
   "drift": {
-    "generated_at": "2026-09-19T13:16:06.122081+00:00",
+    "generated_at": "2026-10-01T11:57:01.527579+00:00",
     "split_mode": "temporal_last_semester",
-    "n_reference": 10770,
+    "n_reference": 32788,
     "n_current": 1345,
     "has_prediction": true,
     "drifted_columns_count": 1.0,
     "drifted_columns_share": 0.16666666666666666,
     "mae_reference": {
-      "n": 10770,
-      "mae": 0.4584,
-      "rmse": 1.059
+      "n": 32788,
+      "mae": 0.4997,
+      "rmse": 1.1433
     },
     "mae_current": {
       "n": 1345,
-      "mae": 0.4787,
-      "rmse": 1.1438
+      "mae": 0.5234,
+      "rmse": 1.1804
     },
     "mae_by_day": [
       {
+        "semester": "2014-1",
+        "n": 1150,
+        "mae": 1.4349,
+        "rmse": 2.3743
+      },
+      {
+        "semester": "2014-2",
+        "n": 1382,
+        "mae": 0.7929,
+        "rmse": 1.615
+      },
+      {
+        "semester": "2015-1",
+        "n": 1518,
+        "mae": 0.6781,
+        "rmse": 1.2874
+      },
+      {
+        "semester": "2015-2",
+        "n": 1525,
+        "mae": 0.5507,
+        "rmse": 1.2815
+      },
+      {
+        "semester": "2016-1",
+        "n": 1491,
+        "mae": 0.5127,
+        "rmse": 1.1221
+      },
+      {
+        "semester": "2016-2",
+        "n": 1494,
+        "mae": 0.4718,
+        "rmse": 1.01
+      },
+      {
+        "semester": "2017-1",
+        "n": 1344,
+        "mae": 0.4702,
+        "rmse": 1.0537
+      },
+      {
+        "semester": "2017-2",
+        "n": 1341,
+        "mae": 0.3971,
+        "rmse": 1.0077
+      },
+      {
+        "semester": "2018-1",
+        "n": 1346,
+        "mae": 0.4301,
+        "rmse": 1.0274
+      },
+      {
+        "semester": "2018-2",
+        "n": 1346,
+        "mae": 0.3919,
+        "rmse": 0.9798
+      },
+      {
+        "semester": "2019-1",
+        "n": 1346,
+        "mae": 0.4314,
+        "rmse": 0.9967
+      },
+      {
         "semester": "2019-2",
+        "n": 2694,
+        "mae": 0.4188,
+        "rmse": 0.9871
+      },
+      {
+        "semester": "2020-1",
         "n": 1347,
-        "mae": 0.7544,
-        "rmse": 1.3817
+        "mae": 0.4068,
+        "rmse": 0.9842
+      },
+      {
+        "semester": "2020-2",
+        "n": 1347,
+        "mae": 0.443,
+        "rmse": 0.9916
+      },
+      {
+        "semester": "2021-1",
+        "n": 1347,
+        "mae": 0.4279,
+        "rmse": 0.9655
+      },
+      {
+        "semester": "2021-2",
+        "n": 1347,
+        "mae": 0.3604,
+        "rmse": 0.9266
       },
       {
         "semester": "2022-1",
         "n": 1347,
-        "mae": 0.6412,
-        "rmse": 1.1453
+        "mae": 0.387,
+        "rmse": 0.9205
       },
       {
         "semester": "2022-2",
         "n": 1347,
-        "mae": 0.3767,
-        "rmse": 0.9187
+        "mae": 0.4359,
+        "rmse": 0.9507
       },
       {
         "semester": "2023-1",
         "n": 1347,
-        "mae": 0.3727,
-        "rmse": 0.9341
+        "mae": 0.4276,
+        "rmse": 0.9703
       },
       {
         "semester": "2023-2",
         "n": 1347,
-        "mae": 0.3692,
-        "rmse": 0.9602
+        "mae": 0.4495,
+        "rmse": 1.0319
       },
       {
         "semester": "2024-1",
         "n": 1347,
-        "mae": 0.3481,
-        "rmse": 0.9622
+        "mae": 0.3662,
+        "rmse": 0.9956
       },
       {
         "semester": "2024-2",
         "n": 1344,
-        "mae": 0.4057,
-        "rmse": 1.0365
+        "mae": 0.5067,
+        "rmse": 1.118
       },
       {
         "semester": "2025-1",
         "n": 1344,
-        "mae": 0.3989,
-        "rmse": 1.0545
+        "mae": 0.4822,
+        "rmse": 1.1262
       },
       {
         "semester": "2025-2",
         "n": 1345,
-        "mae": 0.4787,
-        "rmse": 1.1438
+        "mae": 0.5234,
+        "rmse": 1.1804
       }
     ],
-    "reference_rows": 10770,
+    "reference_rows": 32788,
     "current_rows": 1345
   },
   "decision": {
     "should_retrain": false,
     "trigger_reason": "below_threshold",
-    "mae_ratio": 1.0443,
+    "mae_ratio": 1.0474,
     "mae_ratio_threshold": 1.5,
     "min_reference": 50,
-    "n_reference": 10770,
+    "n_reference": 32788,
     "mae_reference": {
-      "n": 10770,
-      "mae": 0.4584,
-      "rmse": 1.059
+      "n": 32788,
+      "mae": 0.4997,
+      "rmse": 1.1433
     },
     "mae_current": {
       "n": 1345,
-      "mae": 0.4787,
-      "rmse": 1.1438
+      "mae": 0.5234,
+      "rmse": 1.1804
     },
     "drifted_columns_share": 0.16666666666666666,
     "features_stable": true,
-    "generated_at": "2026-09-19T13:16:09.517460+00:00",
-    "summary_path": "/home/runner/work/Rent-tracker/Rent-tracker/reports/drift_latest/summary.json",
+    "generated_at": "2026-10-01T11:57:07.038698+00:00",
+    "summary_path": "/home/runner/work/Roma-Rent-Monitor/Roma-Rent-Monitor/reports/drift_latest/summary.json",
     "dry_run": false,
     "model_path": null,
     "retrain_status": "skipped",
